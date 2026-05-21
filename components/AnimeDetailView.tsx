@@ -168,8 +168,18 @@ export default function AnimeDetailView({ malId }: { malId: number }) {
         <div className="bg-error-container text-on-error-container p-6 rounded-sm border border-error">
           <h2 className="text-lg font-bold font-display uppercase tracking-tight mb-2">Unable to load anime details</h2>
           <p className="text-sm font-body opacity-80">
-            {detailQuery.error instanceof Error ? detailQuery.error.message : "The anime detail page could not be loaded right now."}
+            We couldn&apos;t reach the anime data right now. Check your
+            connection and try again.
           </p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-4"
+            onClick={() => detailQuery.refetch()}
+            disabled={detailQuery.isFetching}
+          >
+            {detailQuery.isFetching ? "Retrying…" : "Try again"}
+          </Button>
         </div>
       </div>
     );

@@ -20,7 +20,7 @@ export default function StatsPage() {
 
   const availableTags = tagsData?.tags ?? [];
 
-  const { data: stats, isLoading, error } = useQuery({
+  const { data: stats, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["stats", includeStatuses],
     queryFn: () =>
       getStats({
@@ -99,9 +99,19 @@ export default function StatsPage() {
           ))}
         </div>
       ) : error ? (
-        <p className="text-destructive text-sm">
-          {error instanceof Error ? error.message : "Failed to load stats"}
-        </p>
+        <div className="flex flex-col items-start gap-3">
+          <p className="text-destructive text-sm">
+            We couldn&apos;t load the statistics. Check your connection and try
+            again.
+          </p>
+          <button
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="px-3 py-1.5 text-sm rounded border hover:opacity-80 disabled:opacity-50"
+          >
+            {isFetching ? "Retrying…" : "Try again"}
+          </button>
+        </div>
       ) : stats ? (
         <StatsCharts stats={stats} />
       ) : (

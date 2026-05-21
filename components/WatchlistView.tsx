@@ -55,7 +55,7 @@ export default function WatchlistView() {
   const [tagDrafts, setTagDrafts] = useState<Record<string, { tag: string; color: string }>>({});
   const queryClient = useQueryClient();
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["watchlist", "enriched"],
     queryFn: () => getEnrichedWatchlist(),
     enabled: !!user,
@@ -206,7 +206,22 @@ export default function WatchlistView() {
   }
 
   if (isLoading) return <WatchlistSkeleton />;
-  if (error) return <p className="text-destructive text-sm">{error instanceof Error ? error.message : "Failed to load watchlist"}</p>;
+  if (error)
+    return (
+      <div className="flex flex-col items-start gap-3">
+        <p className="text-destructive text-sm">
+          We couldn&apos;t load your watchlist. Check your connection and try
+          again.
+        </p>
+        <button
+          onClick={() => refetch()}
+          disabled={isFetching}
+          className="px-3 py-1.5 text-sm rounded border hover:opacity-80 disabled:opacity-50"
+        >
+          {isFetching ? "Retrying…" : "Try again"}
+        </button>
+      </div>
+    );
 
   const filtered = activeTab
     ? items.filter((item) => item.watchStatus === activeTab)

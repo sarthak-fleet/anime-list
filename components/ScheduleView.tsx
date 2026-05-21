@@ -173,7 +173,7 @@ export default function ScheduleView() {
     [],
   );
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["schedule", "timeline"],
     queryFn: () => getScheduleTimeline(),
     enabled: !!user,
@@ -345,7 +345,22 @@ export default function ScheduleView() {
   }
 
   if (isLoading) return <ScheduleSkeleton />;
-  if (error) return <p className="text-destructive text-sm">{error instanceof Error ? error.message : "Failed to load schedule"}</p>;
+  if (error)
+    return (
+      <div className="flex flex-col items-start gap-3">
+        <p className="text-destructive text-sm">
+          We couldn&apos;t load your schedule. Check your connection and try
+          again.
+        </p>
+        <button
+          onClick={() => refetch()}
+          disabled={isFetching}
+          className="px-3 py-1.5 text-sm rounded border hover:opacity-80 disabled:opacity-50"
+        >
+          {isFetching ? "Retrying…" : "Try again"}
+        </button>
+      </div>
+    );
 
   return (
     <div className="space-y-5">
