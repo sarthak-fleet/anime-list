@@ -10,7 +10,7 @@ function isLocalHostname(hostname: string): boolean {
 }
 
 export function getApiUrl(hostname?: string): string {
-  const configuredUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+  const configuredUrl = process.env["NEXT_PUBLIC_API_URL"]?.trim();
   if (configuredUrl) {
     return stripTrailingSlash(configuredUrl);
   }

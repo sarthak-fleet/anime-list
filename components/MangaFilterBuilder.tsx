@@ -306,7 +306,7 @@ export default function MangaFilterBuilder() {
             </button>
           </div>
           <div className="space-y-4">
-            {filters.map((filter, i) => (
+            {filters.map((_filter, i) => (
               <FilterRow
                 key={i}
                 filter={normalizedFilters[i]}

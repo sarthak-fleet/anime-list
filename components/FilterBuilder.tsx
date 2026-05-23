@@ -17,9 +17,6 @@ import { trackCoreAction } from "@/lib/analytics";
 import { DEFAULT_FIELD_OPTIONS, DEFAULT_FILTER_ACTIONS } from "@/lib/filterMetadata";
 import FilterRow from "./FilterRow";
 import ResultsGrid, { ResultsGridSkeleton } from "./ResultsGrid";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -299,8 +296,6 @@ export default function FilterBuilder() {
   const totalPages = totalFiltered > 0 ? Math.ceil(totalFiltered / pagesize) : 0;
   const hasNext = currentPage < totalPages;
   const hasPrev = currentPage > 1;
-  const rangeStart = totalFiltered === 0 ? 0 : offset + 1;
-  const rangeEnd = Math.min(offset + (data?.filteredList.length ?? 0), totalFiltered);
 
   if (!fields || !actions) {
     return <ResultsGridSkeleton />;
@@ -398,7 +393,7 @@ export default function FilterBuilder() {
             </button>
           </div>
           <div className="space-y-4">
-            {filters.map((filter, i) => (
+            {filters.map((_filter, i) => (
               <FilterRow
                 key={i}
                 filter={normalizedFilters[i]}

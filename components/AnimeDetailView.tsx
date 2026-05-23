@@ -10,16 +10,13 @@ import {
   ExternalLink,
   Heart,
   Star,
-  Users,
 } from "lucide-react";
 import { getAnimeDetail, updateAnimeNote } from "@/lib/api";
 import type {
-  AnimeDetail,
   AnimeRecommendationItem,
   AnimeRelationItem,
 } from "@/lib/types";
-import { cn, getAnimeDetailHref } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
+import { getAnimeDetailHref } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 
@@ -123,20 +120,6 @@ export default function AnimeDetailView({ malId }: { malId: number }) {
       queryClient.invalidateQueries({ queryKey: ["watchlist"] });
     },
   });
-
-  const groupedRelations = useMemo(() => {
-    if (!detailQuery.data) return [];
-    const groups = new Map<string, AnimeRelationItem[]>();
-    for (const item of detailQuery.data.relations) {
-      const bucket = groups.get(item.relation) ?? [];
-      bucket.push(item);
-      groups.set(item.relation, bucket);
-    }
-    return Array.from(groups.entries()).map(([relation, items]) => ({
-      relation,
-      items: items.sort((left, right) => animeTitle(left).localeCompare(animeTitle(right))),
-    }));
-  }, [detailQuery.data]);
 
   const recommendations = useMemo(() => {
     if (!detailQuery.data) return [];

@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ExternalLink } from "lucide-react";
-import type { EnrichedWatchlistItem, ScheduleItem, ScheduleTimelineDay, ScheduleTimelineEntry } from "@/lib/types";
+import type { EnrichedWatchlistItem, ScheduleItem, ScheduleTimelineDay } from "@/lib/types";
 import {
   addToSchedule,
   addToWatchlist,

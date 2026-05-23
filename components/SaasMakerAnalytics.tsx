@@ -2,7 +2,7 @@
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 
-const API_KEY = process.env.NEXT_PUBLIC_SAASMAKER_API_KEY;
+const API_KEY = process.env["NEXT_PUBLIC_SAASMAKER_API_KEY"];
 
 export function SaasMakerAnalytics() {
   const pathname = usePathname();

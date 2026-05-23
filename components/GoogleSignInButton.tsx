@@ -27,7 +27,7 @@ export default function GoogleSignInButton() {
   const initializedRef = useRef(false);
 
   useEffect(() => {
-    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    const clientId = process.env["NEXT_PUBLIC_GOOGLE_CLIENT_ID"];
     if (!clientId) return;
 
     const initGoogle = () => {

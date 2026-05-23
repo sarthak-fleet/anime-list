@@ -25,7 +25,6 @@ export default function MangaCard({
 }) {
   const [showMenu, setShowMenu] = useState(false);
   const [customTag, setCustomTag] = useState("");
-  const [customColor, setCustomColor] = useState("#10b981");
   const [optimisticStatus, setOptimisticStatus] = useState<string | null>(null);
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -126,7 +125,7 @@ export default function MangaCard({
             <div className="absolute z-20 mt-1 w-48 rounded border border-outline/20 bg-surface-container-high p-2 shadow-xl">
               {availableTags.map((tag) => (
                 <button
-                  key={tag.id}
+                  key={tag.tag}
                   type="button"
                   onClick={() => handleAdd(tag.tag, tag.color)}
                   className="block w-full px-2 py-1 text-left text-xs hover:bg-white/5"
@@ -145,7 +144,7 @@ export default function MangaCard({
                 <button
                   type="button"
                   disabled={!customTag.trim()}
-                  onClick={() => handleAdd(customTag.trim(), customColor)}
+                  onClick={() => handleAdd(customTag.trim())}
                   className="w-full rounded bg-primary/20 px-2 py-1 text-xs text-primary disabled:opacity-40"
                 >
                   Save custom
