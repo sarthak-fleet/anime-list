@@ -20,6 +20,8 @@
     "db:seed": "tsx src/scripts/seedAnimeData.ts",
     "db:seed:manga": "tsx src/scripts/seedMangaData.ts",
     "db:update": "tsx src/scripts/updateAnimeData.ts",
+    "db:update:manga": "tsx src/scripts/updateMangaData.ts",
+    "db:update:manga:full": "tsx src/scripts/updateMangaData.ts -- --full",
     "db:quarterly-sync": "tsx src/scripts/runQuarterlyAnimeSync.ts",
     "deploy:worker": "wrangler deploy --config wrangler.cron.toml",
     "prepare": "husky"

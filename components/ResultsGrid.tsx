@@ -28,13 +28,6 @@ export function ResultsGridSkeleton() {
 export default function ResultsGrid({ results }: { results: SearchResponse }) {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between border-b border-border pb-4">
-        <h2 className="font-semibold text-xl text-foreground">Results</h2>
-        <p className="text-sm text-muted-foreground">
-          {results.totalFiltered.toLocaleString()} titles
-        </p>
-      </div>
-
       {results.filteredList.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-6 gap-y-10">
           {results.filteredList.map((anime, index) => (
@@ -42,15 +35,10 @@ export default function ResultsGrid({ results }: { results: SearchResponse }) {
           ))}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-32 text-center bg-surface-container-low border border-outline/10 rounded-sm">
-          <div className="h-16 w-16 rounded-sm bg-primary/10 border border-primary/20 flex items-center justify-center mb-6">
-            <span className="text-primary text-2xl font-black italic">!</span>
-          </div>
-          <h3 className="text-xl font-display font-black uppercase italic text-white mb-2 tracking-tight">
-            Signal Lost
-          </h3>
-          <p className="text-[10px] font-bold tracking-[0.2em] text-white/30 uppercase max-w-xs leading-loose">
-            No entries matching your frequency. Adjust filters to re-establish connection.
+        <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-muted/20 py-24 text-center">
+          <p className="text-lg font-medium text-foreground">No titles match</p>
+          <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+            Try clearing a filter, lowering the popularity threshold, or searching with a different title.
           </p>
         </div>
       )}

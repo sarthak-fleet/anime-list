@@ -4,7 +4,9 @@ import { API_CONFIG, FILE_PATHS } from "./config";
 import { BaseAnimeItem, AnimeItem } from "./types/anime";
 import { BaseMangaItem } from "./types/manga";
 import { upsertAnimeBatch } from "./db/animeData";
-import { transformRawAnime } from "./dataProcessor";
+import { upsertMangaBatch } from "./db/mangaData";
+import { transformRawAnime, transformRawManga } from "./dataProcessor";
+import { MangaItem } from "./types/manga";
 
 type RawAnimeItem = BaseAnimeItem & {
   genres?: Array<{ name: string }>;
@@ -128,6 +130,55 @@ export const updateLatestTwoSeasonData = async (): Promise<void> => {
   }
 
   console.log(`\n✓ Season update completed in ${(performance.now() - p0) / 1000}s`);
+};
+
+/** Refresh popular manga from Jikan top list into Turso (daily incremental sync). */
+export const updateLatestTopMangaData = async (
+  maxPages: number = API_CONFIG.mangaDailyUpdatePages,
+): Promise<void> => {
+  const p0 = performance.now();
+  const allFetchedManga: MangaItem[] = [];
+
+  console.log(`Fetching top manga (up to ${maxPages} pages)...`);
+
+  for (let page = 1; page <= maxPages; page++) {
+    const url = `${API_CONFIG.baseUrl}${API_CONFIG.endpoints.topManga}?page=${page}&limit=20`;
+    const data = await fetchFromApi<ApiResponse<RawMangaItem[]>>(url);
+
+    if (!data?.data || !Array.isArray(data.data)) {
+      console.error(`Invalid manga data on page ${page}`);
+      break;
+    }
+
+    for (const rawManga of data.data) {
+      const manga = transformRawManga(rawManga);
+      if (
+        manga.score &&
+        manga.scored_by &&
+        manga.members &&
+        manga.favorites &&
+        manga.year
+      ) {
+        allFetchedManga.push(manga);
+      }
+    }
+
+    if (!data.pagination?.has_next_page) break;
+    if (page % 25 === 0) {
+      console.log(`  page ${page}/${maxPages} — ${allFetchedManga.length} titles so far`);
+    }
+  }
+
+  if (allFetchedManga.length > 0) {
+    console.log(`Saving ${allFetchedManga.length} manga to catalog database...`);
+    await upsertMangaBatch(allFetchedManga);
+  } else {
+    console.log("No manga titles fetched.");
+  }
+
+  console.log(
+    `\n✓ Manga update completed in ${((performance.now() - p0) / 1000).toFixed(1)}s`,
+  );
 };
 
 // Manga API functions

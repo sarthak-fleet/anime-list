@@ -122,6 +122,8 @@ export const API_CONFIG = {
   },
   rateLimit: 1000, // 1 call per second (safe within 3/sec, 60/min limits)
   totalPages: 10000,
+  /** Top-manga pages fetched on daily refresh (~20 titles/page). */
+  mangaDailyUpdatePages: 100,
 } as const;
 
 const DATA_DIR = process.env.DATA_DIR || ".";

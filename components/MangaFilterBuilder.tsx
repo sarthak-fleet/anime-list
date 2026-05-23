@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   useQueryState,
   parseAsString,
@@ -25,37 +25,30 @@ import {
 import FilterRow from "./FilterRow";
 import MangaResultsGrid, { MangaResultsGridSkeleton } from "./MangaResultsGrid";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  MANGA_SORT_OPTIONS,
+  POPULARITY_PRESETS,
+  QUICK_GENRES,
+} from "./discover/constants";
+import {
+  ActiveFilterChip,
+  DiscoverClearButton,
+  DiscoverPanel,
+  DiscoverSearchInput,
+  DiscoverSelect,
+  DiscoverToggleButton,
+  FilterSection,
+  GenrePills,
+} from "./discover/ui";
 import { cn } from "@/lib/utils";
-import { Search, SlidersHorizontal, Trash2 } from "lucide-react";
 import { resolveTagColor, toRgba } from "@/lib/watchStatus";
 
 const DEFAULT_FILTER: SearchFilter = {
-  field: "members",
+  field: "score",
   action: "GREATER_THAN_OR_EQUALS",
-  value: 50000,
+  value: 7,
 };
 const DEFAULT_PAGE_SIZE = 40;
-
-const QUICK_GENRES = [
-  "Action", "Comedy", "Drama", "Fantasy", "Romance", "Sci-Fi",
-  "Slice of Life", "Adventure", "Mystery", "Horror", "Supernatural",
-  "Sports", "Suspense",
-];
-
-const SORT_OPTIONS = [
-  { value: "score", label: "Score" },
-  { value: "members", label: "Popularity" },
-  { value: "year", label: "Year" },
-  { value: "favorites", label: "Favorites" },
-  { value: "chapters", label: "Chapters" },
-  { value: "volumes", label: "Volumes" },
-];
+const DEFAULT_MIN_MEMBERS = 50_000;
 
 const filtersParser = parseAsJson<SearchFilter[]>((v) => {
   if (!Array.isArray(v)) return null;
@@ -84,15 +77,41 @@ function isFilterValuePresent(filter: SearchFilter): boolean {
   return normalizedFilter.value !== "" && normalizedFilter.value !== undefined;
 }
 
+function formatFilterChip(filter: SearchFilter): string {
+  const field = filter.field.replace(/_/g, " ");
+  const action = filter.action.replace(/_/g, " ").toLowerCase();
+  const value = Array.isArray(filter.value)
+    ? filter.value.join(", ")
+    : String(filter.value);
+  return `${field} ${action} ${value}`;
+}
+
 export default function MangaFilterBuilder() {
   const { user } = useAuth();
-  const [filters, setFilters] = useQueryState("mf", filtersParser.withDefault([{ ...DEFAULT_FILTER }]));
+  const [filters, setFilters] = useQueryState("mf", filtersParser.withDefault([]));
   const [searchText, setSearchText] = useQueryState("q", parseAsString.withDefault(""));
   const [sortBy, setSortBy] = useQueryState("sort", parseAsString.withDefault("score"));
-  const [selectedGenres, setSelectedGenres] = useQueryState("genres", parseAsArrayOf(parseAsString).withDefault([]));
-  const [hideWatched, setHideWatched] = useQueryState("wt", parseAsArrayOf(parseAsString).withDefault([]));
-  const [pagesize, setPagesize] = useQueryState("pagesize", parseAsInteger.withDefault(DEFAULT_PAGE_SIZE));
-  const [currentPage, setCurrentPage] = useQueryState("page", parseAsInteger.withDefault(1));
+  const [minMembers, setMinMembers] = useQueryState(
+    "min",
+    parseAsInteger.withDefault(DEFAULT_MIN_MEMBERS),
+  );
+  const [selectedGenres, setSelectedGenres] = useQueryState(
+    "genres",
+    parseAsArrayOf(parseAsString).withDefault([]),
+  );
+  const [hideWatched, setHideWatched] = useQueryState(
+    "wt",
+    parseAsArrayOf(parseAsString).withDefault([]),
+  );
+  const [pagesize, setPagesize] = useQueryState(
+    "pagesize",
+    parseAsInteger.withDefault(DEFAULT_PAGE_SIZE),
+  );
+  const [currentPage, setCurrentPage] = useQueryState(
+    "page",
+    parseAsInteger.withDefault(1),
+  );
+
   const normalizedFilters = filters.map(normalizeFilter);
   const activeAdvancedFilters = normalizedFilters.filter(isFilterValuePresent);
 
@@ -113,8 +132,8 @@ export default function MangaFilterBuilder() {
     }, 300);
   };
 
-  const [showAdvanced, setShowAdvanced] = useState(() =>
-    normalizedFilters.some(isFilterValuePresent),
+  const [showAdvanced, setShowAdvanced] = useState(
+    () => activeAdvancedFilters.length > 0,
   );
 
   const resetPage = () => setCurrentPage(1);
@@ -159,6 +178,14 @@ export default function MangaFilterBuilder() {
       });
     }
 
+    if (minMembers > 0) {
+      allFilters.push({
+        field: "members",
+        action: "GREATER_THAN_OR_EQUALS",
+        value: minMembers,
+      });
+    }
+
     allFilters.push(...activeAdvancedFilters);
 
     return {
@@ -170,7 +197,16 @@ export default function MangaFilterBuilder() {
         hideWatched,
       },
     };
-  }, [activeAdvancedFilters, pagesize, offset, sortBy, selectedGenres, searchText, hideWatched]);
+  }, [
+    activeAdvancedFilters,
+    pagesize,
+    offset,
+    sortBy,
+    selectedGenres,
+    searchText,
+    hideWatched,
+    minMembers,
+  ]);
 
   const filterKey = JSON.stringify(buildSearchOpts());
 
@@ -211,6 +247,7 @@ export default function MangaFilterBuilder() {
 
   const addFilter = () => {
     setFilters((prev) => [...prev, { ...DEFAULT_FILTER }]);
+    setShowAdvanced(true);
     resetPage();
   };
 
@@ -221,11 +258,35 @@ export default function MangaFilterBuilder() {
     setSearchText("");
     setFilters([]);
     setSortBy("score");
+    setMinMembers(DEFAULT_MIN_MEMBERS);
     setHideWatched([]);
     setPagesize(DEFAULT_PAGE_SIZE);
     setShowAdvanced(false);
     setCurrentPage(1);
   };
+
+  const popularityOptions = useMemo(
+    () =>
+      POPULARITY_PRESETS.map((p) => ({
+        value: String(p.value),
+        label: p.label,
+      })),
+    [],
+  );
+
+  const sortOptions = useMemo(
+    () => MANGA_SORT_OPTIONS.map((o) => ({ value: o.value, label: o.label })),
+    [],
+  );
+
+  const popularityLabel = POPULARITY_PRESETS.find((p) => p.value === minMembers)?.label;
+
+  const hasActiveChips =
+    searchText.trim().length > 0 ||
+    selectedGenres.length > 0 ||
+    minMembers !== DEFAULT_MIN_MEMBERS ||
+    activeAdvancedFilters.length > 0 ||
+    hideWatched.length > 0;
 
   const totalFiltered = data?.totalFiltered || 0;
   const totalPages = totalFiltered > 0 ? Math.ceil(totalFiltered / pagesize) : 0;
@@ -237,189 +298,214 @@ export default function MangaFilterBuilder() {
   }
 
   return (
-    <div className="space-y-10">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 bg-card p-5 rounded-lg border border-border shadow-sm">
-        <div className="lg:col-span-5 relative group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
-          <input
-            placeholder="Search manga titles..."
+    <div className="space-y-6">
+      <DiscoverPanel>
+        <div className="flex flex-col gap-3 p-4 lg:flex-row lg:items-end">
+          <DiscoverSearchInput
             value={inputValue}
-            onChange={(e) => handleInputChange(e.target.value)}
-            className="w-full h-11 bg-surface border border-border pl-12 pr-4 text-sm font-medium text-white placeholder:text-white/20 focus:outline-none focus:border-primary transition-all rounded-lg"
+            onChange={handleInputChange}
+            placeholder="Search manga titles…"
           />
-        </div>
-
-        <div className="lg:col-span-3">
-          <label className="text-xs font-medium text-muted-foreground mb-2 block">Sort by</label>
-          <Select
+          <DiscoverSelect
+            label="Sort"
             value={sortBy}
-            onValueChange={(value) => { setSortBy(value); resetPage(); }}
-          >
-            <SelectTrigger className="h-11 bg-surface border-border text-sm font-medium rounded-lg focus:border-primary">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-surface-container-high border-border">
-              {SORT_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value} className="text-[10px] font-bold uppercase tracking-widest focus:bg-primary/10 focus:text-primary">
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="lg:col-span-4 flex items-end gap-3">
-          <button
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            className={cn(
-              "h-11 flex-1 flex items-center justify-center gap-3 text-sm font-medium rounded-lg border transition-all",
-              showAdvanced
-                ? "bg-primary text-primary-foreground border-primary"
-                : "bg-surface border-border text-white/60 hover:border-primary hover:text-white",
-            )}
-          >
-            <SlidersHorizontal size={18} />
-            Filters
-            {activeAdvancedFilters.length > 0 && (
-              <span className="bg-white/10 px-2 py-0.5 rounded-lg">{activeAdvancedFilters.length}</span>
-            )}
-          </button>
-
-          <button
-            onClick={clearAll}
-            className="h-11 w-14 flex items-center justify-center bg-surface border border-border text-white/20 hover:text-error hover:border-error transition-all rounded-lg"
-          >
-            <Trash2 size={20} />
-          </button>
-        </div>
-      </div>
-
-      {showAdvanced && (
-        <div className="space-y-4 p-4 md:p-8 bg-surface-container-low border border-border rounded-lg animate-in fade-in slide-in-from-top-4 duration-300">
-          <div className="flex items-center justify-between border-b border-border pb-4">
-            <h3 className="text-sm font-medium text-muted-foreground">Advanced filters</h3>
-            <button
-              onClick={addFilter}
-              className="text-sm font-medium text-primary hover:text-white transition-colors"
-            >
-              + Add filter
-            </button>
+            onValueChange={(value) => {
+              setSortBy(value);
+              resetPage();
+            }}
+            options={sortOptions}
+          />
+          <DiscoverSelect
+            label="Popularity"
+            value={String(minMembers)}
+            onValueChange={(value) => {
+              setMinMembers(Number(value));
+              resetPage();
+            }}
+            options={popularityOptions}
+            className="min-w-[160px]"
+          />
+          <div className="flex gap-2 lg:pb-0.5">
+            <DiscoverToggleButton
+              active={showAdvanced}
+              count={activeAdvancedFilters.length}
+              onClick={() => setShowAdvanced(!showAdvanced)}
+            />
+            <DiscoverClearButton onClick={clearAll} />
           </div>
-          <div className="space-y-4">
-            {filters.map((_filter, i) => (
-              <FilterRow
-                key={i}
-                filter={normalizedFilters[i]}
-                index={i}
-                fields={fields}
-                actions={actions}
-                mediaType="manga"
-                onChange={updateFilter}
-                onRemove={removeFilter}
+        </div>
+
+        <div className="space-y-4 border-t border-border px-4 py-4">
+          <FilterSection label="Genres">
+            <GenrePills
+              genres={QUICK_GENRES}
+              selected={selectedGenres}
+              onToggle={toggleGenre}
+            />
+          </FilterSection>
+
+          {user && watchlistTags.length > 0 && (
+            <FilterSection label="Hide">
+              <div className="flex flex-wrap gap-2">
+                {watchlistTags.map((tag) => {
+                  const active = hideWatched.includes(tag.tag);
+                  const color = resolveTagColor(tag.tag, tag.color);
+                  return (
+                    <button
+                      key={tag.tag}
+                      type="button"
+                      onClick={() => toggleHideWatched(tag.tag)}
+                      className="rounded-full border px-3 py-1 text-xs font-medium transition-colors"
+                      style={{
+                        borderColor: active ? color : toRgba(color, 0.25),
+                        backgroundColor: active ? toRgba(color, 0.15) : "transparent",
+                        color: active ? color : toRgba(color, 0.7),
+                      }}
+                    >
+                      {tag.tag}
+                    </button>
+                  );
+                })}
+              </div>
+            </FilterSection>
+          )}
+        </div>
+
+        {showAdvanced && (
+          <div className="space-y-3 border-t border-border bg-muted/20 px-4 py-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-foreground">Custom filters</p>
+              <button
+                type="button"
+                onClick={addFilter}
+                className="text-sm font-medium text-primary hover:text-primary/80"
+              >
+                Add filter
+              </button>
+            </div>
+            {filters.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No custom filters yet. Add one to narrow by score, type, chapters, and more.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {filters.map((_filter, i) => (
+                  <FilterRow
+                    key={i}
+                    filter={normalizedFilters[i]}
+                    index={i}
+                    fields={fields}
+                    actions={actions}
+                    mediaType="manga"
+                    onChange={updateFilter}
+                    onRemove={removeFilter}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {hasActiveChips && (
+          <div className="flex flex-wrap gap-2 border-t border-border px-4 py-3">
+            {searchText.trim() && (
+              <ActiveFilterChip
+                label={`Search: ${searchText.trim()}`}
+                onRemove={() => {
+                  setInputValue("");
+                  setSearchText("");
+                  resetPage();
+                }}
+              />
+            )}
+            {selectedGenres.map((genre) => (
+              <ActiveFilterChip
+                key={genre}
+                label={genre}
+                onRemove={() => toggleGenre(genre)}
+              />
+            ))}
+            {minMembers !== DEFAULT_MIN_MEMBERS && popularityLabel && (
+              <ActiveFilterChip
+                label={popularityLabel}
+                onRemove={() => {
+                  setMinMembers(DEFAULT_MIN_MEMBERS);
+                  resetPage();
+                }}
+              />
+            )}
+            {activeAdvancedFilters.map((filter, i) => (
+              <ActiveFilterChip
+                key={`${filter.field}-${i}`}
+                label={formatFilterChip(filter)}
+                onRemove={() => removeFilter(i)}
+              />
+            ))}
+            {hideWatched.map((tag) => (
+              <ActiveFilterChip
+                key={tag}
+                label={`Hide ${tag}`}
+                onRemove={() => toggleHideWatched(tag)}
               />
             ))}
           </div>
-        </div>
+        )}
+      </DiscoverPanel>
+
+      {data && (
+        <p className="text-sm text-muted-foreground">
+          {totalFiltered.toLocaleString()} titles
+          {isFetching && " · updating…"}
+        </p>
       )}
 
-      <div className="space-y-8">
-        <div className="space-y-4">
-          <div className="flex items-center gap-4">
-            <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Genres</span>
-            <div className="h-px flex-1 bg-outline/5" />
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {QUICK_GENRES.map((genre) => {
-              const selected = selectedGenres.includes(genre);
-              return (
-                <button
-                  key={genre}
-                  onClick={() => toggleGenre(genre)}
-                  className={cn(
-                    "px-6 py-2 min-h-11 border text-sm font-medium transition-all rounded-lg",
-                    selected
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-surface-container-low border-border text-white/40 hover:border-white/20 hover:text-white",
-                  )}
-                >
-                  {genre}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {user && watchlistTags.length > 0 && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Hide tagged</span>
-              <div className="h-px flex-1 bg-outline/5" />
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {watchlistTags.map((tag) => {
-                const active = hideWatched.includes(tag.tag);
-                const color = resolveTagColor(tag.tag, tag.color);
-                return (
-                  <button
-                    key={tag.tag}
-                    onClick={() => toggleHideWatched(tag.tag)}
-                    className="px-4 py-2 border rounded-lg text-[9px] font-black tracking-widest uppercase transition-all"
-                    style={{
-                      borderColor: active ? color : toRgba(color, 0.1),
-                      backgroundColor: active ? toRgba(color, 0.2) : "transparent",
-                      color: active ? color : toRgba(color, 0.4),
-                      boxShadow: active ? `0 0 10px ${toRgba(color, 0.2)}` : "none",
-                    }}
-                  >
-                    {tag.tag}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-
       {error && (
-        <div className="flex flex-wrap items-center gap-3">
-          <p className="text-error text-[10px] font-bold uppercase tracking-widest">
-            Couldn&apos;t reach the manga search service
-          </p>
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3">
+          <p className="text-sm text-destructive">Couldn&apos;t reach the manga search service.</p>
           <button
+            type="button"
             onClick={() => refetch()}
             disabled={isFetching}
-            className="text-[10px] font-bold uppercase tracking-widest border border-error/40 text-error px-3 py-1 rounded-lg hover:bg-error/10 transition-colors disabled:opacity-50"
+            className="text-sm font-medium text-destructive underline-offset-2 hover:underline disabled:opacity-50"
           >
             {isFetching ? "Retrying…" : "Retry"}
           </button>
         </div>
       )}
 
-      <div className="pt-10">
+      <div>
         {loading && !data ? (
           <MangaResultsGridSkeleton />
         ) : data ? (
-          <div className={cn("transition-opacity duration-500", isFetching && "opacity-30")}>
+          <div className={cn("transition-opacity duration-300", isFetching && "opacity-50")}>
             <MangaResultsGrid results={data} />
 
             {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-20 border-t border-border pt-10 pb-32">
+              <div className="mt-12 flex items-center justify-between border-t border-border pt-8 pb-16">
                 <button
-                  onClick={() => { setCurrentPage(currentPage - 1); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                  type="button"
+                  onClick={() => {
+                    setCurrentPage(currentPage - 1);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
                   disabled={!hasPrev || isFetching}
-                  className="flex items-center gap-4 text-sm font-medium text-muted-foreground hover:text-primary disabled:opacity-0 transition-all"
+                  className="text-sm font-medium text-muted-foreground hover:text-foreground disabled:opacity-40"
                 >
-                  <span className="text-lg">←</span> Previous
+                  ← Previous
                 </button>
-                <div className="flex items-center gap-6">
-                  <span className="text-white/20 font-display font-black italic text-2xl">{currentPage} <span className="text-sm opacity-50">/ {totalPages}</span></span>
-                </div>
+                <span className="text-sm text-muted-foreground">
+                  Page {currentPage} of {totalPages}
+                </span>
                 <button
-                  onClick={() => { setCurrentPage(currentPage + 1); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                  type="button"
+                  onClick={() => {
+                    setCurrentPage(currentPage + 1);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
                   disabled={!hasNext || isFetching}
-                  className="flex items-center gap-4 text-sm font-medium text-muted-foreground hover:text-primary disabled:opacity-0 transition-all text-right"
+                  className="text-sm font-medium text-muted-foreground hover:text-foreground disabled:opacity-40"
                 >
-                  Next <span className="text-lg">→</span>
+                  Next →
                 </button>
               </div>
             )}

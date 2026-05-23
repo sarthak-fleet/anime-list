@@ -89,7 +89,7 @@ const cleanAnimeData = (rawData: RawAnimeData): AnimeItem[] => {
 };
 
 // Manga data processing functions
-const transformRawManga = (rawManga: RawMangaData[0]): MangaItem => {
+export const transformRawManga = (rawManga: RawMangaData[0]): MangaItem => {
   return {
     mal_id: rawManga.mal_id,
     url: rawManga.url,

@@ -1,4 +1,4 @@
-name: Update Anime Data
+name: Update Catalog Data
 
 on:
   schedule:
@@ -38,7 +38,18 @@ jobs:
           pnpm run db:update
           echo "✓ Anime data updated successfully"
 
+      - name: Update manga data
+        env:
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+          TURSO_MANGA_DATABASE_URL: ${{ secrets.TURSO_MANGA_DATABASE_URL }}
+          TURSO_MANGA_AUTH_TOKEN: ${{ secrets.TURSO_MANGA_AUTH_TOKEN }}
+        run: |
+          echo "Starting manga data update..."
+          pnpm run db:update:manga
+          echo "✓ Manga data updated successfully"
+
       - name: Notify on failure
         if: failure()
         run: |
-          echo "::error::Anime data update failed. Check workflow logs."
+          echo "::error::Catalog data update failed. Check workflow logs."

@@ -29,6 +29,7 @@ import {
   getLastDataUpdate,
   getRecentChanges,
 } from "./db/animeData";
+import { getLastMangaDataUpdate } from "./db/mangaData";
 import { findOrCreateUser } from "./db/users";
 import { initUsersTable } from "./db/users";
 import {
@@ -398,8 +399,18 @@ app.get("/api/filters", (c) =>
 );
 
 app.get("/api/last-updated", async (c) => {
-  const lastUpdated = await getLastDataUpdate();
-  return c.json({ lastUpdated });
+  const [anime, manga] = await Promise.all([
+    getLastDataUpdate(),
+    getLastMangaDataUpdate(),
+  ]);
+  const timestamps = [anime, manga].filter(Boolean) as string[];
+  const lastUpdated =
+    timestamps.length > 0
+      ? timestamps.sort(
+          (a, b) => new Date(b).getTime() - new Date(a).getTime(),
+        )[0]
+      : null;
+  return c.json({ lastUpdated, anime, manga });
 });
 
 app.get("/api/changelog", async (c) => {

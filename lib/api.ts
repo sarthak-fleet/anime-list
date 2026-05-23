@@ -259,7 +259,11 @@ export function reorderSchedule(
   });
 }
 
-export function getLastUpdated(): Promise<{ lastUpdated: string | null }> {
+export function getLastUpdated(): Promise<{
+  lastUpdated: string | null;
+  anime: string | null;
+  manga: string | null;
+}> {
   return fetchJson(`${BASE}/last-updated`);
 }
 

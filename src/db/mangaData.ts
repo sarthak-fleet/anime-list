@@ -143,3 +143,11 @@ export async function getMangaCount(): Promise<number> {
   const result = await db.execute("SELECT COUNT(*) as count FROM manga_data");
   return result.rows[0].count as number;
 }
+
+export async function getLastMangaDataUpdate(): Promise<string | null> {
+  const db = getMangaCatalogDb();
+  const result = await db.execute(
+    "SELECT MAX(updated_at) as last_updated FROM manga_data",
+  );
+  return (result.rows[0]?.last_updated as string) || null;
+}

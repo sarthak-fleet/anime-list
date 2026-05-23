@@ -180,12 +180,12 @@ export default function FilterRow({
   };
 
   return (
-    <div className="flex flex-col md:flex-row md:items-center gap-3 bg-surface p-4 rounded-lg border border-outline/5 transition-all hover:border-outline/20">
-      <div className="flex gap-3 flex-1">
+    <div className="flex flex-col gap-2 rounded-lg border border-border bg-background p-3 sm:flex-row sm:items-center">
+      <div className="flex flex-1 flex-wrap gap-2">
         <select
           value={normalizedFilter.field}
           onChange={(e) => handleFieldChange(e.target.value)}
-          className="h-10 bg-surface-container-low border border-border px-3 text-sm font-medium text-white rounded-lg focus:border-primary focus:outline-none min-w-[140px]"
+          className="h-9 min-w-[120px] rounded-md border border-border bg-muted/30 px-2.5 text-sm text-foreground focus:border-ring focus:outline-none"
         >
           {allFields.map((f) => (
             <option key={f} value={f}>{getFieldLabel(f)}</option>
@@ -195,7 +195,7 @@ export default function FilterRow({
         <select
           value={normalizedFilter.action}
           onChange={(e) => onChange(index, { ...normalizedFilter, action: e.target.value })}
-          className="h-10 bg-surface-container-low border border-border px-3 text-sm font-medium text-primary rounded-lg focus:border-primary focus:outline-none min-w-[140px]"
+          className="h-9 min-w-[120px] rounded-md border border-border bg-muted/30 px-2.5 text-sm text-foreground focus:border-ring focus:outline-none"
         >
           {availableActions.map((a) => (
             <option key={a} value={a}>{getActionLabel(a)}</option>
@@ -203,17 +203,20 @@ export default function FilterRow({
         </select>
       </div>
 
-      <div className="flex-[2] flex flex-wrap gap-2">
+      <div className="flex flex-[2] flex-wrap items-center gap-2">
         {isArray && valueOptions ? (
           valueOptions.map((opt) => {
             const selected = Array.isArray(filter.value) && filter.value.includes(opt);
             return (
               <button
                 key={opt}
+                type="button"
                 onClick={() => handleValueChange(opt)}
                 className={cn(
-                  "px-3 py-1 border text-[9px] font-black tracking-widest uppercase rounded-lg transition-all",
-                  selected ? "bg-primary/20 text-primary border-primary" : "bg-surface-container-highest/20 border-border text-white/30 hover:text-white"
+                  "rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
+                  selected
+                    ? "border-primary bg-primary/15 text-primary"
+                    : "border-border text-muted-foreground hover:border-ring hover:text-foreground",
                 )}
               >
                 {opt}
@@ -224,9 +227,9 @@ export default function FilterRow({
           <select
             value={typeof normalizedFilter.value === "string" ? normalizedFilter.value : ""}
             onChange={(e) => handleValueChange(e.target.value)}
-            className="h-10 w-full bg-surface-container-low border border-border px-3 text-sm font-medium text-white rounded-lg focus:border-primary focus:outline-none"
+            className="h-9 w-full rounded-md border border-border bg-muted/30 px-2.5 text-sm text-foreground focus:border-ring focus:outline-none"
           >
-            <option value="">SELECT VALUE...</option>
+            <option value="">Select value…</option>
             {valueOptions.map((opt) => (
               <option key={opt} value={opt}>{opt}</option>
             ))}
@@ -236,17 +239,19 @@ export default function FilterRow({
             type={fields.numeric.includes(filter.field) ? "number" : "text"}
             value={normalizedFilter.value as string | number}
             onChange={(e) => handleValueChange(e.target.value)}
-            placeholder="INPUT PARAMETER..."
-            className="h-10 w-full bg-surface-container-low border border-border px-4 text-sm font-medium text-white placeholder:text-white/10 rounded-lg focus:border-primary focus:outline-none"
+            placeholder="Value"
+            className="h-9 w-full rounded-md border border-border bg-muted/30 px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none"
           />
         )}
       </div>
 
       <button
+        type="button"
         onClick={() => onRemove(index)}
-        className="h-10 w-10 flex items-center justify-center text-white/20 hover:text-error transition-colors md:ml-2"
+        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+        aria-label="Remove filter"
       >
-        <Trash2 size={16} />
+        <Trash2 size={15} />
       </button>
     </div>
   );
