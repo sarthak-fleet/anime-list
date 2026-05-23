@@ -8,12 +8,8 @@ import {
   ArrowLeft,
   ArrowUpRight,
   ExternalLink,
-  Film,
   Heart,
-  ListTree,
-  Sparkles,
   Star,
-  Tv,
   Users,
 } from "lucide-react";
 import { getAnimeDetail, updateAnimeNote } from "@/lib/api";
