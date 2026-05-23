@@ -1,10 +1,6 @@
-import { FILE_PATHS, AnimeField, FilterAction } from "./config";
+import { FILE_PATHS } from "./config";
 import {
   AnimeItem,
-  Filter,
-  isNumericField,
-  isArrayField,
-  isStringField,
   RawAnimeData,
 } from "./types/anime";
 // Re-export from filterEngine (pure logic, no native deps)
@@ -29,13 +25,8 @@ import {
   MangaWatchlistData,
   WatchTag,
   WatchedAnime,
-  WatchedManga,
   UserAnimeListItem as WatchlistUserAnimeItem,
-  UserMangaListItem as WatchlistUserMangaItem,
 } from "./types/watchlist";
-import { animeStore } from "./store/animeStore";
-// Dynamic import to avoid pulling in native modules (xml2json) on CF Workers
-const getMangaStore = () => import("./store/mangaStore").then((m) => m.mangaStore);
 
 const extractImageUrl = (images?: { webp?: { image_url?: string }; jpg?: { image_url?: string } }): string | undefined =>
   images?.webp?.image_url || images?.jpg?.image_url || undefined;
@@ -73,19 +64,6 @@ export const transformRawAnime = (rawAnime: RawAnimeData[0]): AnimeItem => {
     themes: arrayToMap(rawAnime.themes),
     demographics: arrayToMap(rawAnime.demographics),
   };
-};
-
-const cleanAnimeData = (rawData: RawAnimeData): AnimeItem[] => {
-  return rawData
-    .map(transformRawAnime)
-    .filter(
-      (anime) =>
-        anime.score &&
-        anime.scored_by &&
-        anime.members &&
-        anime.favorites &&
-        anime.year
-    );
 };
 
 // Manga data processing functions
@@ -156,15 +134,6 @@ export const cleanExistingMangaJsonFile = async (): Promise<
 };
 
 // Filter logic imported from filterEngine.ts (see re-export above)
-
-async function loadWatchlist(): Promise<WatchlistData> {
-  const { getAnimeWatchlist } = await import("./db/watchlist");
-  const data = await getAnimeWatchlist();
-  if (!data) {
-    throw new Error("Watchlist data not found");
-  }
-  return data;
-}
 
 export const storeUserWatchedDataInFile = async (): Promise<void> => {
   const { parseUserXMLFile, writeJsonFile } = await import("./utils/file");

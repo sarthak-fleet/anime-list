@@ -1,6 +1,6 @@
 import axios from "axios";
-import { delay, writeJsonFile } from "./utils/file";
-import { API_CONFIG, FILE_PATHS } from "./config";
+import { delay } from "./utils/file";
+import { API_CONFIG } from "./config";
 import { BaseAnimeItem, AnimeItem } from "./types/anime";
 import { BaseMangaItem } from "./types/manga";
 import { upsertAnimeBatch } from "./db/animeData";
@@ -139,8 +139,12 @@ export const updateLatestTopMangaData = async (
   const p0 = performance.now();
   let pending: MangaItem[] = [];
   let totalSaved = 0;
+  let uniqueCount = 0;
+  let stalePages = 0;
+  const seenMalIds = new Set<number>();
   const FLUSH_EVERY_PAGES = 25;
   const MAX_PAGE_RETRIES = 3;
+  const MAX_STALE_PAGES = 5;
 
   console.log(`Fetching top manga (up to ${maxPages} pages)...`);
 
@@ -170,6 +174,7 @@ export const updateLatestTopMangaData = async (
       break;
     }
 
+    let newThisPage = 0;
     for (const rawManga of data.data) {
       const manga = transformRawManga(rawManga);
       if (
@@ -177,15 +182,31 @@ export const updateLatestTopMangaData = async (
         manga.scored_by &&
         manga.members &&
         manga.favorites &&
-        manga.year
+        manga.year &&
+        !seenMalIds.has(manga.mal_id)
       ) {
+        seenMalIds.add(manga.mal_id);
         pending.push(manga);
+        newThisPage++;
       }
+    }
+    uniqueCount += newThisPage;
+
+    if (newThisPage === 0) {
+      stalePages++;
+      if (stalePages >= MAX_STALE_PAGES) {
+        console.log(
+          `  stopping after ${MAX_STALE_PAGES} pages with no new titles (page ${page})`,
+        );
+        break;
+      }
+    } else {
+      stalePages = 0;
     }
 
     if (page % FLUSH_EVERY_PAGES === 0) {
       console.log(
-        `  page ${page}/${maxPages} — ${totalSaved + pending.length} titles fetched`,
+        `  page ${page}/${maxPages} — ${uniqueCount} unique titles fetched`,
       );
       await flushPending();
     }
@@ -202,37 +223,6 @@ export const updateLatestTopMangaData = async (
   }
 
   console.log(
-    `\n✓ Manga update completed in ${((performance.now() - p0) / 1000).toFixed(1)}s`,
+    `\n✓ Manga update completed in ${((performance.now() - p0) / 1000).toFixed(1)}s (${uniqueCount} unique titles)`,
   );
-};
-
-// Manga API functions
-export const fetchAllMangaPages = async (): Promise<void> => {
-  const fetchedManga: RawMangaItem[] = [];
-  let page = 1;
-
-  const p0 = performance.now();
-
-  while (page <= API_CONFIG.totalPages) {
-    const url = `${API_CONFIG.baseUrl}${API_CONFIG.endpoints.topManga}?page=${page}&limit=20`;
-    const data = await fetchFromApi<ApiResponse<RawMangaItem[]>>(url);
-
-    if (!data?.data || !Array.isArray(data.data)) {
-      console.error(`Invalid data format on page ${page}`);
-      break;
-    }
-
-    fetchedManga.push(...data.data);
-    if (!data.pagination?.has_next_page) break;
-    if (page % 10 === 0) console.log(`Fetched manga page ${page}`);
-    page++;
-  }
-
-  const existingManga: Record<string, RawMangaItem> = {};
-  for (const manga of fetchedManga) {
-    existingManga[manga.mal_id.toString()] = manga;
-  }
-
-  await writeJsonFile(FILE_PATHS.mangaData, existingManga);
-  console.log(`Updated all manga in ${performance.now() - p0}ms`);
 };

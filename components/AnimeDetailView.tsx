@@ -69,14 +69,14 @@ function RelatedTitleLink({
   const isAnimeRoute = item.url?.includes("/anime/") ?? false;
   const href = getAnimeDetailHref(item.mal_id);
   const className =
-    "group flex items-start justify-between gap-3 bg-surface-container-low border-l-2 border-outline/20 px-4 py-3 transition-all hover:border-primary hover:bg-white/5";
+    "group flex items-start justify-between gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3 transition-colors hover:border-ring hover:bg-muted/50";
   const body = (
     <>
       <div className="min-w-0 space-y-1">
-        <div className="truncate text-sm font-display font-bold uppercase tracking-tight text-white group-hover:text-primary transition-colors">
+        <div className="truncate text-sm font-medium text-foreground group-hover:text-primary transition-colors">
           {title}
         </div>
-        <div className="flex flex-wrap items-center gap-3 text-[10px] font-bold tracking-widest uppercase text-white/40">
+        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
           {item.type ? <span>{item.type}</span> : null}
           {item.year ? <span>{item.year}</span> : null}
           {relationLabel ? (
@@ -145,7 +145,7 @@ export default function AnimeDetailView({ malId }: { malId: number }) {
           <Link href="/"><ArrowLeft className="mr-2 h-4 w-4"/>Back to Discover</Link>
         </Button>
         <div className="bg-error-container text-on-error-container p-6 rounded-sm border border-error">
-          <h2 className="text-lg font-bold font-display uppercase tracking-tight mb-2">Unable to load anime details</h2>
+          <h2 className="text-lg font-semibold text-foreground mb-2">Unable to load anime details</h2>
           <p className="text-sm font-body opacity-80">
             We couldn&apos;t reach the anime data right now. Check your
             connection and try again.
@@ -189,7 +189,7 @@ export default function AnimeDetailView({ malId }: { malId: number }) {
             href={anime.url} 
             target="_blank" 
             rel="noopener noreferrer"
-            className="px-4 py-2 text-[10px] font-black tracking-widest uppercase text-white/60 hover:text-white hover:bg-white/5 transition-colors border border-outline/10 flex items-center justify-center gap-2 rounded-sm"
+            className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             Open on MAL <ExternalLink className="h-3 w-3" />
           </a>
@@ -294,8 +294,8 @@ export default function AnimeDetailView({ malId }: { malId: number }) {
           {/* Synopsis */}
           {synopsis && (
             <div className="space-y-6">
-              <h2 className="font-display text-3xl font-black italic tracking-tighter uppercase text-white">The Narrative</h2>
-              <p className="font-body text-base md:text-lg text-white/70 leading-relaxed whitespace-pre-wrap">
+              <h2 className="text-3xl font-semibold tracking-tight text-foreground">Synopsis</h2>
+              <p className="text-base md:text-lg text-muted-foreground leading-relaxed whitespace-pre-wrap">
                 {synopsis}
               </p>
             </div>
@@ -304,9 +304,7 @@ export default function AnimeDetailView({ malId }: { malId: number }) {
           {/* Private Note */}
           {user && (
             <div className="space-y-6">
-              <h2 className="font-display text-2xl font-black italic tracking-tighter uppercase text-white flex items-center gap-3">
-                Curator Notes
-              </h2>
+              <h2 className="text-xl font-semibold text-foreground">Notes</h2>
               {watchlistEntry ? (
                 <div className="bg-surface-container-low p-1 rounded-sm border border-outline/20 flex flex-col focus-within:border-primary/50 transition-colors">
                   <textarea
@@ -318,16 +316,16 @@ export default function AnimeDetailView({ malId }: { malId: number }) {
                     placeholder="Document your thoughts..."
                   />
                   <div className="flex items-center justify-between px-4 py-3 bg-surface-container-high border-t border-outline/10">
-                    <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">
-                      {noteDraft.trim().length}/2000 CHARS
+                    <span className="text-xs text-muted-foreground">
+                      {noteDraft.trim().length}/2000
                     </span>
                     <Button
                       size="sm"
-                      className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20 h-7 text-[10px] font-black uppercase tracking-widest rounded-sm"
+                      className="h-8"
                       onClick={() => noteMutation.mutate(noteDraft)}
                       disabled={noteMutation.isPending || noteDraft.trim() === (watchlistEntry.note ?? "").trim()}
                     >
-                      {noteMutation.isPending ? "SAVING..." : "SAVE NOTE"}
+                      {noteMutation.isPending ? "Saving…" : "Save note"}
                     </Button>
                   </div>
                 </div>
@@ -341,7 +339,7 @@ export default function AnimeDetailView({ malId }: { malId: number }) {
           {(prequels.length > 0 || sequels.length > 0 || franchiseGuide.length > 0) && (
             <div className="space-y-6">
               <div className="flex items-end border-b border-outline/10 pb-4">
-                <h2 className="font-display text-2xl font-black uppercase italic tracking-tighter text-white">Collection Echoes</h2>
+                <h2 className="text-xl font-semibold text-foreground">Related titles</h2>
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 {[...prequels, ...sequels].map(item => (
@@ -350,7 +348,7 @@ export default function AnimeDetailView({ malId }: { malId: number }) {
               </div>
               {franchiseGuide.length > 0 && (
                 <div className="mt-6">
-                  <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 mb-4">Franchise Guide</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-4">More in series</h3>
                   <div className="grid gap-2">
                     {franchiseGuide.map(item => (
                       <RelatedTitleLink key={`franchise-${item.mal_id}`} item={item} relationLabel={item.relation} />
@@ -365,7 +363,7 @@ export default function AnimeDetailView({ malId }: { malId: number }) {
           {recommendations.length > 0 && (
             <div className="space-y-6">
               <div className="flex items-end border-b border-outline/10 pb-4">
-                <h2 className="font-display text-2xl font-black uppercase italic tracking-tighter text-white">System Recommendations</h2>
+                <h2 className="text-xl font-semibold text-foreground">Recommendations</h2>
               </div>
               <div className="flex gap-4 md:gap-6 overflow-x-auto hide-scrollbar pb-8 -mx-4 px-4 sm:mx-0 sm:px-0">
                 {recommendations.map((item) => {
@@ -378,8 +376,8 @@ export default function AnimeDetailView({ malId }: { malId: number }) {
                         ) : null}
                         <div className="absolute inset-0 bg-primary-container/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                       </div>
-                      <h4 className="font-display font-black text-sm md:text-base uppercase tracking-tight text-white group-hover:text-primary transition-colors line-clamp-2 leading-tight">{itemTitle}</h4>
-                      <p className="text-[9px] md:text-[10px] font-bold text-white/40 tracking-widest uppercase mt-1">{item.type || "Unknown"} • {item.year || "Unknown"}</p>
+                      <h4 className="text-sm md:text-base font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-tight">{itemTitle}</h4>
+                      <p className="text-xs text-muted-foreground mt-1">{item.type || "Unknown"} · {item.year || "Unknown"}</p>
                     </Link>
                   );
                 })}

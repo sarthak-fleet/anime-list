@@ -53,7 +53,7 @@ export default function MangaDetailView({ malId }: { malId: number }) {
           <Link href="/manga"><ArrowLeft className="mr-2 h-4 w-4"/>Back to Discover</Link>
         </Button>
         <div className="bg-error-container text-on-error-container p-6 rounded-sm border border-error">
-          <h2 className="text-lg font-bold font-display uppercase tracking-tight mb-2">Unable to load manga details</h2>
+          <h2 className="text-lg font-semibold text-foreground mb-2">Unable to load manga details</h2>
           <p className="text-sm font-body opacity-80">
             We couldn&apos;t reach the manga data right now. Check your connection and try again.
           </p>
@@ -92,7 +92,7 @@ export default function MangaDetailView({ malId }: { malId: number }) {
             href={manga.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-4 py-2 text-[10px] font-black tracking-widest uppercase text-white/60 hover:text-white hover:bg-white/5 transition-colors border border-outline/10 flex items-center justify-center gap-2 rounded-sm"
+            className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             Open on MAL <ExternalLink className="h-3 w-3" />
           </a>
@@ -186,7 +186,7 @@ export default function MangaDetailView({ malId }: { malId: number }) {
         <div className="lg:col-span-8 space-y-12 md:space-y-16">
           <div className="flex flex-wrap gap-3">
             {[...manga.genres, ...manga.themes, ...manga.demographics].map((g) => (
-              <span key={g} className="px-4 py-2 border border-outline/20 text-[10px] font-black tracking-[0.2em] uppercase text-white hover:bg-white/5 transition-colors cursor-default bg-surface-container-low">
+              <span key={g} className="rounded-full border border-border bg-muted/30 px-3 py-1 text-xs font-medium text-muted-foreground">
                 {g}
               </span>
             ))}
@@ -201,8 +201,8 @@ export default function MangaDetailView({ malId }: { malId: number }) {
 
           {synopsis ? (
             <div className="space-y-4">
-              <h2 className="font-display font-black text-2xl uppercase italic tracking-tighter text-white">Synopsis</h2>
-              <p className="text-white/70 leading-relaxed font-body text-sm md:text-base whitespace-pre-line">
+              <h2 className="text-xl font-semibold text-foreground">Synopsis</h2>
+              <p className="text-muted-foreground leading-relaxed text-sm md:text-base whitespace-pre-line">
                 {synopsis}
               </p>
             </div>

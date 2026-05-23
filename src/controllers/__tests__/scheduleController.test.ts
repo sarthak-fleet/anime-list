@@ -1,6 +1,7 @@
 import { getAnimeWatchlist, upsertAnimeWatchlist } from "../../db/watchlist";
 import { getSchedule, upsertScheduleItems } from "../../db/schedule";
 import { animeStore } from "../../store/animeStore";
+import type { AnimeItem } from "../../types/anime";
 import {
   addScheduleItems,
   buildScheduleTimelineResponse,
@@ -60,7 +61,7 @@ describe("scheduleService", () => {
         themes: {},
         demographics: {},
       },
-    ] as any);
+    ] as AnimeItem[]);
 
     const result = await buildScheduleTimelineResponse("user-1");
 
@@ -99,7 +100,7 @@ describe("scheduleService", () => {
         themes: {},
         demographics: {},
       },
-    ] as any);
+    ] as AnimeItem[]);
 
     const result = await buildScheduleTimelineResponse("user-1");
 

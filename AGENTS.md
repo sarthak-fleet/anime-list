@@ -1,68 +1,70 @@
-# agents.md — anime_list (MAL Explorer)
+# agents.md — anime_list (Shelf)
 
 ## Shared Fleet Standard
 
 Also read and follow the shared fleet-level agent standard at `../AGENTS.md`. Treat this repository as owned product code: protect production stability, keep changes scoped, verify work, and record durable follow-up tasks when something remains incomplete or blocked.
 
 ## Purpose
-Anime/manga discovery platform with 14,800+ titles, multi-field filtering, personal watchlists, schedule tracking, and daily auto-sync from MyAnimeList via Jikan API.
+Anime/manga discovery platform with multi-field filtering, personal watchlists, schedule tracking, and daily auto-sync from MyAnimeList via Jikan API.
 
 ## Stack
 - Framework: Next.js 16 (App Router) + Cloudflare Worker API (Hono)
 - Language: TypeScript (full stack)
 - Styling: Tailwind CSS v4 + shadcn/ui
-- DB: Turso (libSQL) — anime data + user watchlists; Cloudflare Worker with daily cron
+- DB: Turso (libSQL) — anime + manga catalogs, users, watchlists (single DB in prod; optional `TURSO_MANGA_*` override)
 - Auth: Google OAuth 2.0 + JWT (`jose`)
 - Testing: Jest (unit), Playwright (e2e)
-- Deploy: Cloudflare Pages (`anime-list-9lk.pages.dev`) via `@opennextjs/cloudflare` + Worker `mal-api` (`wrangler deploy`)
+- Deploy: Cloudflare Pages (`anime-list-9lk.pages.dev`) + Worker `mal-api` (`wrangler deploy`)
 - Package manager: pnpm
 
 ## Repo structure
 ```
-app/                     # Next.js App Router pages
-components/              # React components (AnimeCard, FilterBuilder, StatsCharts, WatchlistView)
+app/                     # Next.js pages (/, /manga, /stats, /watchlist, detail routes)
+components/              # FilterBuilder, MangaFilterBuilder, cards, charts
+  discover/              # Shared discover filter UI
   ui/                    # shadcn/ui primitives
-lib/                     # Frontend utils (auth.tsx, api.ts, types.ts)
+lib/                     # auth, api client, types, brand
 src/
-  worker.ts              # Cloudflare Worker API (Hono, daily cron @ 3 AM UTC)
-  config.ts              # Enums: AnimeField, FilterAction, Genre, WatchStatus
+  worker.ts              # Cloudflare Worker API + daily cron @ 3 AM UTC
+  worker/mangaRoutes.ts  # Manga API routes
+  config.ts              # Enums, Jikan config, distribution ranges
   filterEngine.ts        # Pure filter logic
-  dataProcessor.ts       # Data transforms + manga helpers (future manga API)
+  dataProcessor.ts       # Jikan transforms, manga/anime helpers
   statistics.ts          # Aggregation/analytics
-  controllers/           # Shared handlers (animeDetailService, helpers)
-  db/                    # Turso client, watchlist CRUD, users, migrations
-  store/                 # In-memory cache (stale-while-revalidate, <1ms)
-  services/              # schedule, manga (future), anilistStatusSync, dataLoader
-  types/                 # anime.ts, manga.ts, watchlist.ts
-  validators/            # Zod schemas for all API inputs
-scripts/                 # seed-watchlist.ts, restore-legacy-tags.ts
-cleaned_anime_data.json  # Seed/bootstrap dataset for db:seed
-cleaned_manga_data.json  # Manga dataset (future manga API)
+  db/                    # Turso: anime_data, manga_data, watchlists, users
+  store/                 # In-memory cache (stale-while-revalidate)
+  services/              # schedule, anilistStatusSync
+  scripts/               # db seed/update/quarterly scripts
+cleaned_anime_data.json  # Bootstrap seed for anime
+cleaned_manga_data.json  # Bootstrap seed for manga
 ```
 
 ## Key commands
 ```bash
-pnpm dev              # Worker (8787) + Next.js (3000) via concurrently
-pnpm dev:be           # Worker only (wrangler dev)
-pnpm dev:fe           # Frontend only (Next.js port 3000)
-pnpm build            # Next.js production build
-pnpm test             # Jest unit tests
-pnpm test:e2e:anime-detail  # Playwright e2e
-pnpm db:seed          # Seed Turso from JSON data
-pnpm db:update        # Update anime data from Jikan API
-pnpm db:quarterly-sync  # Full quarterly data sync
-pnpm deploy:worker    # Deploy Cloudflare Worker
+pnpm dev                  # Worker (:8787) + Next.js (:3000)
+pnpm dev:be               # Worker only
+pnpm dev:fe               # Frontend only
+pnpm build                # Next.js production build
+pnpm test                 # Jest unit tests
+pnpm test:e2e:anime-detail
+pnpm db:seed              # Seed anime catalog from JSON
+pnpm db:seed:manga        # Seed manga catalog from JSON
+pnpm db:update            # Daily anime refresh (current + previous season)
+pnpm db:update:manga      # Daily manga refresh (top ~100 pages)
+pnpm db:update:manga:full # Full top-list manga refresh (~25k titles)
+pnpm db:quarterly-sync    # Quarterly anime status/score sync
+pnpm deploy               # Cloudflare Pages
+pnpm deploy:worker        # Cloudflare Worker
 ```
 
 ## Architecture notes
-- **Backend**: Cloudflare Worker `mal-api` (Hono, edge) serves all API traffic locally and in production; runs daily cron @ 3 AM UTC for cache refresh.
-- **In-memory cache**: 14,800+ anime loaded on startup into in-memory store with stale-while-revalidate. All searches <1ms.
-- **Scoring algorithm**: log-scale prevents mega-popular titles from dominating — `log10(score)*10 + log10(members/10000) + log10(favorites/100)`.
-- **Daily auto-update**: GitHub Actions `update-anime-data.yml` hits Jikan API daily at midnight UTC. `quarterly-anime-sync.yml` for full refresh.
+- **Backend**: Worker `mal-api` serves all API traffic; cron reloads anime + manga caches from Turso daily.
+- **Catalog quality gate** (anime + manga): Jikan rows must have `score`, `scored_by`, `members`, `favorites`, and `year`. Discover UI defaults to min popularity (100k anime / 50k manga members).
+- **Manga scope**: ~25k top/popular titles from Jikan `/top/manga`, not the full MAL catalog.
+- **Daily sync**: `update-anime-data.yml` — anime seasons + manga top pages @ midnight UTC.
+- **Quarterly sync**: `quarterly-anime-sync.yml` (anime), `quarterly-manga-sync.yml` (manga full top-list).
 - **Watch statuses**: `Watching`, `Completed`, `Deferred`, `Avoiding`, `BRR`.
-- **Rate limit**: Cloudflare edge (Worker has no Express rate-limit middleware).
-- **Worker secrets** via `wrangler secret put`: `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `JWT_SECRET`, `GOOGLE_CLIENT_ID`.
-- Husky pre-push hook configured.
+- **Worker secrets**: `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `JWT_SECRET`, `GOOGLE_CLIENT_ID` (optional `TURSO_MANGA_*`).
 
 <!-- FLEET-GUIDANCE:START -->
 
