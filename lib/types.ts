@@ -329,6 +329,10 @@ export interface MangaDetailResponse {
 }
 
 export interface DiscoveryQueueResponse {
+  meta?: {
+    currentSeason: string;
+    currentYear: number;
+  };
   results: {
     mal_id: number;
     id: number;
@@ -340,5 +344,10 @@ export interface DiscoveryQueueResponse {
     themes: string[];
     year?: number;
     season?: string;
+    score?: number;
+    members?: number;
+    status?: string;
+    reasons?: string[];
+    mediaType?: "anime" | "manga";
   }[];
 }

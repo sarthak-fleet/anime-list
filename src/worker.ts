@@ -13,6 +13,7 @@ import {
   getAnimeWatchlist,
   getAnimeWatchlistEntry,
   getDismissedAnime,
+  getMangaWatchlist,
   importAnimeWatchlistEntries,
   upsertAnimeWatchlist,
   updateAnimeWatchlistNote,
@@ -866,60 +867,89 @@ app.get("/api/discover/queue", requireAuth, async (c) => {
   const now = new Date();
   const year = now.getUTCFullYear();
   const month = now.getUTCMonth();
-  
+
   // Seasons: Winter (Jan-Mar), Spring (Apr-Jun), Summer (Jul-Sep), Fall (Oct-Dec)
   const currentSeason = ["winter", "spring", "summer", "fall"][Math.floor(month / 3)];
-  
-  // Determine previous season
+
   let prevYear = year;
   let prevSeason = currentSeason;
-  if (month < 3) { // Winter
-    prevSeason = "fall";
-    prevYear = year - 1;
-  } else if (month < 6) { // Spring
-    prevSeason = "winter";
-  } else if (month < 9) { // Summer
-    prevSeason = "spring";
-  } else { // Fall
-    prevSeason = "summer";
-  }
-  
+  if (month < 3) { prevSeason = "fall"; prevYear = year - 1; }
+  else if (month < 6) { prevSeason = "winter"; }
+  else if (month < 9) { prevSeason = "spring"; }
+  else { prevSeason = "summer"; }
+
   const seasonsToInclude = [
     { year, season: currentSeason },
     { year: prevYear, season: prevSeason },
   ];
 
-  const [allAnime, watchlist, dismissed] = await Promise.all([
+  const [allAnime, watchlist, dismissed, allManga, mangaWatchlist] = await Promise.all([
     animeStore.getAnimeList(),
     getAnimeWatchlist(user.userId),
     getDismissedAnime(user.userId),
+    mangaStore.getMangaList(),
+    getMangaWatchlist(user.userId),
   ]);
 
   const watchlistIds = new Set(Object.keys(watchlist?.anime || {}));
   const dismissedIds = new Set(dismissed);
+  const mangaWatchlistIds = new Set(Object.keys(mangaWatchlist?.manga || {}));
 
-  const suggestions = allAnime.filter(anime => {
-    const isInSeasons = seasonsToInclude.some(s => anime.year === s.year && anime.season?.toLowerCase() === s.season);
-    if (!isInSeasons) return false;
+  // Build taste weights from the user's anime watchlist
+  const STATUS_WEIGHTS: Record<string, number> = {
+    watching: 1.4, completed: 1.3, done: 1.3, brr: 1.15,
+    avoiding: -1.6, deferred: -0.8, dropped: -1.2,
+  };
+  const genreWeights = new Map<string, number>();
+  const themeWeights = new Map<string, number>();
+  const animeById = new Map(allAnime.map(a => [a.mal_id.toString(), a]));
 
-    if (watchlistIds.has(anime.mal_id.toString())) return false;
-    if (dismissedIds.has(anime.mal_id.toString())) return false;
-    
-    // Basic quality filter
-    if ((anime.members ?? 0) < 5000) return false;
-    if ((anime.score ?? 0) < 6.5) return false;
-
-    return true;
-  });
-
-  // Shuffle the array
-  for (let i = suggestions.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [suggestions[i], suggestions[j]] = [suggestions[j], suggestions[i]];
+  for (const [malId, entry] of Object.entries(watchlist?.anime || {})) {
+    const a = animeById.get(malId);
+    if (!a) continue;
+    const w = STATUS_WEIGHTS[entry.status?.toLowerCase() ?? ""] ?? 0.5;
+    for (const g of Object.keys(a.genres)) genreWeights.set(g, (genreWeights.get(g) ?? 0) + w);
+    for (const t of Object.keys(a.themes)) themeWeights.set(t, (themeWeights.get(t) ?? 0) + w);
   }
-  
-  return c.json({
-    results: suggestions.slice(0, limit).map(anime => ({
+
+  const hasTaste = genreWeights.size > 0;
+
+  // Filter seasonal anime and score by taste + quality
+  const animeResults = allAnime
+    .filter(anime => {
+      if (!seasonsToInclude.some(s => anime.year === s.year && anime.season?.toLowerCase() === s.season)) return false;
+      if (watchlistIds.has(anime.mal_id.toString())) return false;
+      if (dismissedIds.has(anime.mal_id.toString())) return false;
+      if ((anime.members ?? 0) < 5000) return false;
+      if ((anime.score ?? 0) < 6.5) return false;
+      return true;
+    })
+    .map(anime => {
+      let tasteScore = 0;
+      const reasons: string[] = [];
+      if (hasTaste) {
+        for (const g of Object.keys(anime.genres)) {
+          const w = genreWeights.get(g) ?? 0;
+          if (w > 0) { tasteScore += w * 2; reasons.push(g); }
+          else if (w < 0) tasteScore += w;
+        }
+        for (const t of Object.keys(anime.themes)) {
+          const w = themeWeights.get(t) ?? 0;
+          if (w > 0) tasteScore += w * 1.4;
+          else if (w < 0) tasteScore += w * 0.7;
+        }
+      }
+      const qualityScore = (anime.score ?? 0) + Math.log10(Math.max(1, anime.members ?? 1)) * 0.2;
+      const isCurrent = anime.year === year && anime.season?.toLowerCase() === currentSeason;
+      return { anime, tasteScore, qualityScore, reasons: reasons.slice(0, 3), isCurrent };
+    })
+    .sort((a, b) => {
+      if (a.isCurrent !== b.isCurrent) return a.isCurrent ? -1 : 1;
+      const sa = hasTaste ? a.tasteScore * 0.6 + a.qualityScore * 0.4 : a.qualityScore;
+      const sb = hasTaste ? b.tasteScore * 0.6 + b.qualityScore * 0.4 : b.qualityScore;
+      return sb - sa;
+    })
+    .map(({ anime, reasons }) => ({
       mal_id: anime.mal_id,
       id: anime.mal_id,
       title: anime.title,
@@ -929,8 +959,54 @@ app.get("/api/discover/queue", requireAuth, async (c) => {
       genres: Object.keys(anime.genres),
       themes: Object.keys(anime.themes),
       year: anime.year,
-      season: anime.season,
-    }))
+      season: anime.season as string | undefined,
+      score: anime.score,
+      members: anime.members,
+      status: anime.status as string | undefined,
+      reasons,
+      mediaType: "anime" as const,
+    }));
+
+  // Top-scoring manga not already in the user's manga watchlist
+  const mangaResults = allManga
+    .filter(m => !mangaWatchlistIds.has(m.mal_id.toString()) && (m.score ?? 0) >= 7.5 && (m.members ?? 0) >= 50000)
+    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+    .slice(0, 12)
+    .map(m => ({
+      mal_id: m.mal_id,
+      id: m.mal_id,
+      title: m.title,
+      title_english: m.title_english,
+      synopsis: m.synopsis,
+      image: m.image,
+      genres: Object.keys(m.genres),
+      themes: Object.keys(m.themes),
+      year: m.year,
+      season: undefined as string | undefined,
+      score: m.score,
+      members: m.members,
+      status: m.status as string | undefined,
+      reasons: [] as string[],
+      mediaType: "manga" as const,
+    }));
+
+  // Interleave: insert one manga item every 5 anime items
+  const blended: typeof animeResults = [];
+  let ai = 0, mi = 0;
+  const total = Math.min(limit, animeResults.length + mangaResults.length);
+  for (let i = 0; i < total; i++) {
+    if (mi < mangaResults.length && ai > 0 && ai % 5 === 0) {
+      blended.push(mangaResults[mi++]);
+    } else if (ai < animeResults.length) {
+      blended.push(animeResults[ai++]);
+    } else if (mi < mangaResults.length) {
+      blended.push(mangaResults[mi++]);
+    }
+  }
+
+  return c.json({
+    meta: { currentSeason, currentYear: year },
+    results: blended,
   });
 });
 
