@@ -164,14 +164,46 @@ export async function initWatchlistTables(): Promise<void> {
       tag_id TEXT NOT NULL,
       PRIMARY KEY (user_id, mal_id)
     )`,
+    `CREATE TABLE IF NOT EXISTS anime_dismissals (
+      user_id TEXT NOT NULL,
+      mal_id TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (user_id, mal_id)
+    )`,
     "CREATE INDEX IF NOT EXISTS idx_user_tags_user ON user_tags(user_id)",
     "CREATE INDEX IF NOT EXISTS idx_user_tags_user_lower_name ON user_tags(user_id, lower(name))",
     "CREATE INDEX IF NOT EXISTS idx_watchlist_tag_id ON anime_watchlist(tag_id)",
     "CREATE INDEX IF NOT EXISTS idx_watchlist_user_tag ON anime_watchlist(user_id, tag_id)",
     "CREATE INDEX IF NOT EXISTS idx_manga_watchlist_tag_id ON manga_watchlist(tag_id)",
     "CREATE INDEX IF NOT EXISTS idx_manga_watchlist_user_tag ON manga_watchlist(user_id, tag_id)",
+    "CREATE INDEX IF NOT EXISTS idx_anime_dismissals_user ON anime_dismissals(user_id)",
   ]);
 }
+
+export async function addDismissedAnime(
+  userId: string,
+  malIds: string[],
+): Promise<void> {
+  const db = getDb();
+  const statements = malIds.map((id) => ({
+    sql: `INSERT OR IGNORE INTO anime_dismissals (user_id, mal_id) VALUES (?, ?)`,
+    args: [userId, id],
+  }));
+  if (statements.length > 0) {
+    await db.batch(statements);
+  }
+}
+
+export async function getDismissedAnime(userId: string): Promise<string[]> {
+  const db = getDb();
+  const result = await db.execute({
+    sql: "SELECT mal_id FROM anime_dismissals WHERE user_id = ?",
+    args: [userId],
+  });
+  return result.rows.map((row) => row.mal_id as string);
+}
+
+
 
 export async function seedDefaultUserTags(userId: string): Promise<void> {
   for (const { tag, color } of DEFAULT_USER_TAGS) {

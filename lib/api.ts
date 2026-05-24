@@ -15,6 +15,7 @@ import type {
   MangaWatchlistData,
   EnrichedMangaWatchlistResponse,
   MangaDetailResponse,
+  DiscoveryQueueResponse,
 } from "./types";
 import { getApiUrl } from "./apiConfig";
 
@@ -381,4 +382,17 @@ export function getRandomMangaPick(options?: {
   if (options?.limit != null) params.set("limit", String(options.limit));
   const query = params.toString();
   return fetchJson(`${MANGA_BASE}/random${query ? `?${query}` : ""}`);
+}
+export function getDiscoveryQueue(limit = 50): Promise<DiscoveryQueueResponse> {
+  return fetchJson(`${BASE}/discover/queue?limit=${limit}`);
+}
+
+export function dismissDiscoveryItems(
+  malIds: (string | number)[],
+): Promise<{ success: boolean; message: string }> {
+  return fetchJson(`${BASE}/discover/dismiss`, {
+    method: "POST",
+    headers: jsonHeaders,
+    body: JSON.stringify({ mal_ids: malIds }),
+  });
 }

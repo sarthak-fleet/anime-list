@@ -327,3 +327,18 @@ export interface MangaDetailResponse {
   };
   watchlistEntry: { status: string } | null;
 }
+
+export interface DiscoveryQueueResponse {
+  results: {
+    mal_id: number;
+    id: number;
+    title: string;
+    title_english?: string;
+    synopsis?: string;
+    image?: string;
+    genres: string[];
+    themes: string[];
+    year?: number;
+    season?: string;
+  }[];
+}

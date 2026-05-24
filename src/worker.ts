@@ -8,9 +8,11 @@ import { configurePostHog, trace, flushPostHog } from "@saas-maker/ops";
 // Business logic imports (all unchanged files)
 import { filterAnimeList } from "./filterEngine";
 import {
+  addDismissedAnime,
   deleteUserTag,
   getAnimeWatchlist,
   getAnimeWatchlistEntry,
+  getDismissedAnime,
   importAnimeWatchlistEntries,
   upsertAnimeWatchlist,
   updateAnimeWatchlistNote,
@@ -86,126 +88,11 @@ import {
   animeDetailNoteSchema,
   animeMalIdParamsSchema,
 } from "./validators/animeDetail";
+import { z } from "zod";
 
-// ── Types ──────────────────────────────────────────────────────────────
-
-interface AuthPayload {
-  userId: string;
-  email: string;
-  name: string;
-  picture?: string;
-}
-
-type Env = {
-  TURSO_DATABASE_URL: string;
-  TURSO_AUTH_TOKEN: string;
-  TURSO_MANGA_DATABASE_URL?: string;
-  TURSO_MANGA_AUTH_TOKEN?: string;
-  JWT_SECRET: string;
-  GOOGLE_CLIENT_ID: string;
-  POSTHOG_API_KEY?: string;
-};
-
-const SEARCH_CACHE_TTL_SECONDS = 180;
-const STATS_CACHE_TTL_SECONDS = 300;
-const SEARCH_SYNOPSIS_MAX = 220;
-
-const truncateSynopsis = (text: string | undefined): string | undefined => {
-  if (!text) return text;
-  if (text.length <= SEARCH_SYNOPSIS_MAX) return text;
-  return `${text.slice(0, SEARCH_SYNOPSIS_MAX - 1).trimEnd()}…`;
-};
-
-// ── JWT helpers (using jose instead of jsonwebtoken) ───────────────────
-
-const getJwtSecret = () =>
-  new TextEncoder().encode(
-    process.env.JWT_SECRET || "mal-explorer-dev-secret-change-in-prod"
-  );
-
-async function signToken(payload: AuthPayload): Promise<string> {
-  return new SignJWT(payload as unknown as Record<string, unknown>)
-    .setProtectedHeader({ alg: "HS256" })
-    .setExpirationTime("7d")
-    .sign(getJwtSecret());
-}
-
-async function verifyToken(token: string): Promise<AuthPayload | null> {
-  try {
-    const { payload } = await jwtVerify(token, getJwtSecret());
-    return payload as unknown as AuthPayload;
-  } catch {
-    return null;
-  }
-}
-
-function extractBearerToken(header: string | undefined): string | null {
-  if (header?.startsWith("Bearer ")) return header.slice(7);
-  return null;
-}
-
-// ── Cookie helpers (XSS hardening: token lives in httpOnly cookie) ─────
-
-const AUTH_COOKIE_NAME = "mal_auth_token";
-const AUTH_COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // 7 days, matches signToken TTL
-
-function buildAuthCookie(token: string): string {
-  // Cross-site (Workers ↔ Vercel/Pages frontends) requires SameSite=None+Secure
-  return `${AUTH_COOKIE_NAME}=${token}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=${AUTH_COOKIE_MAX_AGE}`;
-}
-
-function buildAuthClearCookie(): string {
-  return `${AUTH_COOKIE_NAME}=; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=0`;
-}
-
-function readAuthCookie(cookieHeader: string | undefined): string | null {
-  if (!cookieHeader) return null;
-  const match = cookieHeader.match(/(?:^|;\s*)mal_auth_token=([^;]+)/);
-  return match?.[1] ?? null;
-}
-
-function extractToken(c: {
-  req: { header: (name: string) => string | undefined };
-}): string | null {
-  return (
-    extractBearerToken(c.req.header("Authorization")) ||
-    readAuthCookie(c.req.header("Cookie"))
-  );
-}
-
-const toHex = (buffer: ArrayBuffer): string =>
-  Array.from(new Uint8Array(buffer))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-
-const buildSearchCacheRequest = async (
-  origin: string,
-  payload: {
-    filters: unknown;
-    sortBy: string | undefined;
-    airing: "yes" | "no" | "any";
-    pagesize: number;
-    offset: number;
-  }
-): Promise<Request> => {
-  const normalizedPayload = {
-    filters: payload.filters,
-    sortBy: payload.sortBy ?? null,
-    airing: payload.airing,
-    pagesize: payload.pagesize,
-    offset: payload.offset,
-  };
-  const digest = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(JSON.stringify(normalizedPayload))
-  );
-  const key = toHex(digest);
-  const cacheUrl = new URL("https://mal-cache.local/api/search");
-  cacheUrl.searchParams.set("v", "1");
-  cacheUrl.searchParams.set("k", key);
-  cacheUrl.searchParams.set("o", origin || "none");
-  return new Request(cacheUrl.toString(), { method: "GET" });
-};
+const discoverDismissSchema = z.object({
+  mal_ids: z.array(z.string().or(z.number())).min(1),
+});
 
 // ── Google OAuth (using jose JWKS instead of google-auth-library) ──────
 
@@ -969,6 +856,96 @@ app.post("/api/schedule/reorder", requireAuth, async (c) => {
   const user = c.get("user")!;
   await dbReorderSchedule(user.userId, parsed.data.mal_ids);
   return c.json({ success: true, message: "Schedule reordered" });
+});
+
+// Discovery Queue
+app.get("/api/discover/queue", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const limit = Math.min(Math.max(parseInt(c.req.query("limit") || "50", 10) || 50, 1), 200);
+
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  const month = now.getUTCMonth();
+  
+  // Seasons: Winter (Jan-Mar), Spring (Apr-Jun), Summer (Jul-Sep), Fall (Oct-Dec)
+  const currentSeason = ["winter", "spring", "summer", "fall"][Math.floor(month / 3)];
+  
+  // Determine previous season
+  let prevYear = year;
+  let prevSeason = currentSeason;
+  if (month < 3) { // Winter
+    prevSeason = "fall";
+    prevYear = year - 1;
+  } else if (month < 6) { // Spring
+    prevSeason = "winter";
+  } else if (month < 9) { // Summer
+    prevSeason = "spring";
+  } else { // Fall
+    prevSeason = "summer";
+  }
+  
+  const seasonsToInclude = [
+    { year, season: currentSeason },
+    { year: prevYear, season: prevSeason },
+  ];
+
+  const [allAnime, watchlist, dismissed] = await Promise.all([
+    animeStore.getAnimeList(),
+    getAnimeWatchlist(user.userId),
+    getDismissedAnime(user.userId),
+  ]);
+
+  const watchlistIds = new Set(Object.keys(watchlist?.anime || {}));
+  const dismissedIds = new Set(dismissed);
+
+  const suggestions = allAnime.filter(anime => {
+    const isInSeasons = seasonsToInclude.some(s => anime.year === s.year && anime.season?.toLowerCase() === s.season);
+    if (!isInSeasons) return false;
+
+    if (watchlistIds.has(anime.mal_id.toString())) return false;
+    if (dismissedIds.has(anime.mal_id.toString())) return false;
+    
+    // Basic quality filter
+    if ((anime.members ?? 0) < 5000) return false;
+    if ((anime.score ?? 0) < 6.5) return false;
+
+    return true;
+  });
+
+  // Shuffle the array
+  for (let i = suggestions.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [suggestions[i], suggestions[j]] = [suggestions[j], suggestions[i]];
+  }
+  
+  return c.json({
+    results: suggestions.slice(0, limit).map(anime => ({
+      mal_id: anime.mal_id,
+      id: anime.mal_id,
+      title: anime.title,
+      title_english: anime.title_english,
+      synopsis: anime.synopsis,
+      image: anime.image,
+      genres: Object.keys(anime.genres),
+      themes: Object.keys(anime.themes),
+      year: anime.year,
+      season: anime.season,
+    }))
+  });
+});
+
+app.post("/api/discover/dismiss", requireAuth, async (c) => {
+  const body = await c.req.json();
+  const parsed = discoverDismissSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: "Invalid dismiss payload", details: parsed.error.issues }, 400);
+  }
+
+  const user = c.get("user")!;
+  const malIds = parsed.data.mal_ids.map(String);
+  await addDismissedAnime(user.userId, malIds);
+
+  return c.json({ success: true, message: "Dismissed" });
 });
 
 registerMangaRoutes(app, { requireAuth, optionalAuth });
