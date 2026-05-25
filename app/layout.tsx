@@ -1,4 +1,3 @@
-import { SaasMakerAnalytics } from '@/components/SaasMakerAnalytics'
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
@@ -68,7 +67,6 @@ export default function RootLayout({
         className={`min-h-screen bg-background text-foreground ${inter.variable} ${inter.className}`}
       >
         <AnalyticsProvider>
-          <SaasMakerAnalytics />
           <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
           <Script
             id="structured-data"
