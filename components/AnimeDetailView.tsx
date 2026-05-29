@@ -208,7 +208,7 @@ export default function AnimeDetailView({ malId, isModal = false }: { malId: num
       <div className={cn("space-y-4", isModal ? "p-6" : "px-6 pt-10")}>
         {!isModal && (
           <Button asChild variant="ghost" size="sm" className="text-white/60 hover:text-white">
-            <Link href="/"><ArrowLeft className="mr-2 h-4 w-4"/>Back to Discover</Link>
+            <Link href="/search"><ArrowLeft className="mr-2 h-4 w-4"/>Back to Discover</Link>
           </Button>
         )}
         <div className="bg-error-container text-on-error-container p-6 rounded-sm border border-error">
@@ -248,7 +248,7 @@ export default function AnimeDetailView({ malId, isModal = false }: { malId: num
         <div className={cn("flex items-center gap-4", isModal ? "justify-end" : "justify-between")}>
           {!isModal && (
             <Button asChild variant="ghost" size="sm" className="text-white/60 hover:text-white h-8 px-2 border border-outline/20">
-              <Link href="/">
+              <Link href="/search">
                 <ArrowLeft className="mr-1 h-3 w-3" />
                 Back
               </Link>

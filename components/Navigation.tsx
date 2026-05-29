@@ -18,7 +18,7 @@ import { Menu } from "lucide-react";
 
 const animeLinks = [
   { href: "/discover", label: "Discover" },
-  { href: "/", label: "Search" },
+  { href: "/search", label: "Search" },
   { href: "/stats", label: "Stats" },
   { href: "/watchlist", label: "Watchlist" },
   { href: "/schedule", label: "Schedule" },
@@ -48,7 +48,11 @@ export default function Navigation() {
   const { user, loading, logout } = useAuth();
   const mangaMode = isMangaPath(pathname);
   const links = mangaMode ? mangaLinks : animeLinks;
-  const homeHref = mangaMode ? "/manga" : "/";
+  // Site brand link goes to the marketing landing; section toggle goes to the
+  // anime/manga app root.
+  const homeHref = "/";
+  const animeSectionHref = "/search";
+  const mangaSectionHref = "/manga";
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border/80 bg-background/90 backdrop-blur-md">
@@ -62,7 +66,7 @@ export default function Navigation() {
 
         <div className="hidden sm:flex items-center gap-1 rounded-lg bg-muted/60 p-1">
           <Link
-            href="/"
+            href={animeSectionHref}
             className={cn(
               "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
               !mangaMode ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
@@ -71,7 +75,7 @@ export default function Navigation() {
             Anime
           </Link>
           <Link
-            href="/manga"
+            href={mangaSectionHref}
             className={cn(
               "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
               mangaMode ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
@@ -111,12 +115,12 @@ export default function Navigation() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="bg-popover border-border">
               <DropdownMenuItem asChild>
-                <Link href="/" className={cn("w-full cursor-pointer text-sm", !mangaMode ? "text-primary" : "")}>
+                <Link href={animeSectionHref} className={cn("w-full cursor-pointer text-sm", !mangaMode ? "text-primary" : "")}>
                   Anime
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/manga" className={cn("w-full cursor-pointer text-sm", mangaMode ? "text-primary" : "")}>
+                <Link href={mangaSectionHref} className={cn("w-full cursor-pointer text-sm", mangaMode ? "text-primary" : "")}>
                   Manga
                 </Link>
               </DropdownMenuItem>

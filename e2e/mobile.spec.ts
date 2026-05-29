@@ -19,7 +19,7 @@ test.describe("anime_list mobile primary flow", () => {
   });
 
   test("title search input is reachable on mobile", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/search");
 
     const search = page.getByPlaceholder(/title search/i);
     await expect(search).toBeVisible();
