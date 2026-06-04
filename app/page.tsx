@@ -69,6 +69,12 @@ export default function HomePage() {
             >
               Browse the queue
             </Link>
+            <Link
+              href="/quiz"
+              className="inline-flex min-h-10 items-center rounded-lg border border-border px-6 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Take the quiz
+            </Link>
           </div>
         </div>
       </section>

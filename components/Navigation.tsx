@@ -19,6 +19,7 @@ import { Menu } from "lucide-react";
 const animeLinks = [
   { href: "/discover", label: "Discover" },
   { href: "/search", label: "Search" },
+  { href: "/quiz", label: "Quiz" },
   { href: "/stats", label: "Stats" },
   { href: "/watchlist", label: "Watchlist" },
   { href: "/schedule", label: "Schedule" },

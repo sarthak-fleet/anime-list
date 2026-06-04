@@ -12,13 +12,14 @@ Shelf (MAL Explorer) is a production anime/manga discovery app: multi-field sear
 - Advanced filter search (`/search`) with URL-encoded state
 - Watchlist with statuses, tags, taste recommendations (`buildTasteRecommendations`)
 - Discover queue (`/discover`) with watchlist-weighted seasonal scoring
+- Privacy-safe `/quiz` prototype that maps structured answers to Shelf archetypes and existing search URLs
 - Deployed on Cloudflare Pages + Worker; Jest + Playwright test coverage
 
 ## Planned Next
 
 1. Operational stability (Pages 500 regressions, MAL CDN image policy) per fleet memory
-2. No active feature build for character identity quiz until cold-start metrics justify it
+2. Measure `/quiz` completion-to-search clickthrough before adding persistence, OG images, or share analytics
 
 ## Deferred
 
-- **Character identity quiz** — Evaluated 2026-06-04; deferred as low incremental lift vs existing search + watchlist taste + discover queue. Full brief: [`docs/plans/2026-06-04-character-identity-quiz-brief.md`](docs/plans/2026-06-04-character-identity-quiz-brief.md). Revisit if unsigned bounce on `/search` or explicit user demand; smallest proof is a static 7-question prototype linking to pre-built search URLs only.
+- **Character identity quiz expansion** — The smallest proof now exists at `/quiz`. Do not add social scraping, OAuth imports, stored quiz results, OG image generation, or a separate recommendation API unless completion-to-search clickthrough proves lift. Full brief: [`docs/plans/2026-06-04-character-identity-quiz-brief.md`](docs/plans/2026-06-04-character-identity-quiz-brief.md).
