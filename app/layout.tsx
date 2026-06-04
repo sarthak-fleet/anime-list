@@ -67,7 +67,11 @@ export default function RootLayout({
         className={`min-h-screen bg-background text-foreground ${inter.variable} ${inter.className}`}
       >
         <AnalyticsProvider>
-          <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
+          {/* Google Identity Services — defer past page idle since the
+              homepage and most discover pages don't trigger a sign-in flow
+              on first load. psi-swarm flagged this as 76.9 KB of unused JS
+              that was racing for the LCP-critical interval. */}
+          <Script src="https://accounts.google.com/gsi/client" strategy="lazyOnload" />
           <Script
             id="structured-data"
             type="application/ld+json"
