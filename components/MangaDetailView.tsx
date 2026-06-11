@@ -83,6 +83,7 @@ export default function MangaDetailView({ malId, isModal = false }: { malId: num
     onSuccess: () => {
       setCustomTag("");
       queryClient.invalidateQueries({ queryKey: ["manga", "watchlist"] });
+      queryClient.invalidateQueries({ queryKey: ["manga", "watchlist", "enriched"] });
       queryClient.invalidateQueries({ queryKey: ["watchlist", "tags"] });
       queryClient.invalidateQueries({ queryKey: ["manga", "detail", malId] });
       trackCoreAction("watchlist_add");
