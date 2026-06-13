@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SITE_NAME, SITE_TAGLINE } from "@/lib/brand";
+import { SITE_NAME } from "@/lib/brand";
 
 const FEATURES = [
   {
@@ -50,30 +50,24 @@ export default function HomePage() {
             Anime &amp; manga, indexed from MyAnimeList
           </div>
           <h1 className="mt-6 text-4xl font-semibold tracking-tight text-foreground sm:text-6xl">
-            {SITE_TAGLINE}, properly.
+            Find your next anime in 30 seconds.
           </h1>
           <p className="mt-5 mx-auto max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
-            {SITE_NAME} is a calm way to filter 35,000+ anime and manga titles, keep a private
-            watchlist, and see what is airing — all on top of public MyAnimeList data.
+            Filter 35,000+ anime and manga titles from MyAnimeList by score, genre, year, and
+            members. Free, no sign-up to search, private watchlist if you want one.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link
               href="/search"
               className="inline-flex min-h-10 items-center rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
             >
-              Start searching
+              Filter the catalog
             </Link>
             <Link
               href="/discover"
               className="inline-flex min-h-10 items-center rounded-lg border border-border px-6 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               Browse the queue
-            </Link>
-            <Link
-              href="/quiz"
-              className="inline-flex min-h-10 items-center rounded-lg border border-border px-6 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Take the quiz
             </Link>
           </div>
         </div>
@@ -103,27 +97,34 @@ export default function HomePage() {
       <section className="px-4 sm:px-6 py-16 border-t border-border">
         <div className="mx-auto max-w-5xl">
           <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
-            See it in action
+            Try it without signing up
           </h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
             Filter rows stack into a single query. Results, stats, and your watchlist all read
-            from the same URL state.
+            from the same URL state — every query is shareable.
           </p>
-          <div
-            className="mt-6 aspect-[16/9] w-full rounded-xl border border-dashed border-border bg-card/40 flex items-center justify-center text-center px-6"
-            role="img"
-            aria-label="Product screenshot placeholder"
-          >
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-foreground">Screenshot coming soon</p>
-              <p className="text-xs text-muted-foreground">
-                Try the real thing —{" "}
-                <Link href="/search" className="underline underline-offset-4 hover:text-foreground">
-                  open the search page
-                </Link>
-                .
-              </p>
-            </div>
+          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <Link
+              href="/search?score_min=8&type=TV&status=Finished+Airing"
+              className="rounded-xl border border-border bg-card p-5 text-left transition-colors hover:border-foreground/30"
+            >
+              <p className="text-sm font-medium text-foreground">Top-rated TV anime</p>
+              <p className="mt-1 text-xs text-muted-foreground">score 8+, finished airing</p>
+            </Link>
+            <Link
+              href="/discover"
+              className="rounded-xl border border-border bg-card p-5 text-left transition-colors hover:border-foreground/30"
+            >
+              <p className="text-sm font-medium text-foreground">Currently airing queue</p>
+              <p className="mt-1 text-xs text-muted-foreground">this season, sorted for you</p>
+            </Link>
+            <Link
+              href="/stats"
+              className="rounded-xl border border-border bg-card p-5 text-left transition-colors hover:border-foreground/30"
+            >
+              <p className="text-sm font-medium text-foreground">Catalog stats</p>
+              <p className="mt-1 text-xs text-muted-foreground">14,800+ anime, score distribution</p>
+            </Link>
           </div>
         </div>
       </section>
