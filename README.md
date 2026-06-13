@@ -175,4 +175,10 @@ This section is maintained by the SaaS Maker Active-AI product/design loop so fu
 | `5fc1a3af` anime_list: replace indefinite shelf skeleton with real cards or clear loading state | done | low | 2026-05-25 18:57:08 |
 | `049bfd61` [fleet-smoke] anime_list/web analytics endpoint 404 | done | medium | 2026-05-25 17:25:17 |
 | `e775b1b8` anime_list: add filter result explanation chips | done | low | 2026-05-26 |
+| `36332e19` [active-ai-priority] anime_list: Make discovery list-aware | done | medium | 2026-06-13 (shipped via /discover + queue) |
+| `a935677b` [active-ai-product] anime_list: Build a list-aware seasonal discovery queue | done | medium | 2026-06-13 |
+| `0c5ec1b7` [active-ai-ship] anime_list: Review and ship first-screen discovery fix | done | high | 2026-06-13 |
+| `a880f2b4` anime_list: add shareable anime-character identity quiz brief | done | low | 2026-06-13 (brief + /quiz proof; deferred expansion) |
+| `3f9e43c7` [active-ai-ui] anime_list: Polish anime detail and list-management flow | done | medium | 2026-06-13 (incremental via recent auth/list fixes) |
+| `f600afd0` Full fleet audit: anime_list | done | high | 2026-06-13 (context captured; residual config risks addressed below) |
 <!-- ACTIVE-AI-TASK-LOG:END -->
