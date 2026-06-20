@@ -6,6 +6,7 @@ import {
   notFound,
 } from "@tanstack/react-router";
 import RootLayout from "./RootLayout";
+import AppProvidersLayout from "./AppProvidersLayout";
 import NotFoundPage from "./pages/NotFoundPage";
 import HomePage from "./pages/HomePage";
 
@@ -45,82 +46,89 @@ const indexRoute = createRoute({
   component: HomePage,
 });
 
-const searchRoute = createRoute({
+/** Pathless layout: Query + nuqs only for routes that need them (not /). */
+const appRoute = createRoute({
   getParentRoute: () => rootRoute,
+  id: "app",
+  component: AppProvidersLayout,
+});
+
+const searchRoute = createRoute({
+  getParentRoute: () => appRoute,
   path: "/search",
   component: SearchPage,
 });
 
 const discoverRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: "/discover",
   component: DiscoverPage,
 });
 
 const animeDetailRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: "/anime/$malId",
   beforeLoad: ({ params }) => validateMalId(params.malId),
   component: AnimeDetailPage,
 });
 
 const mangaDetailRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: "/manga/$malId",
   beforeLoad: ({ params }) => validateMalId(params.malId),
   component: MangaDetailPage,
 });
 
 const genreRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: "/genre/$genre",
   component: GenreRandomPage,
 });
 
 const randomRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: "/random",
   component: RandomPage,
 });
 
 const scheduleRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: "/schedule",
   component: SchedulePage,
 });
 
 const watchlistRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: "/watchlist",
   component: WatchlistPage,
 });
 
 const statsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: "/stats",
   component: StatsPage,
 });
 
 const mangaRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: "/manga",
   component: MangaSearchPage,
 });
 
 const mangaStatsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: "/manga/stats",
   component: MangaStatsPage,
 });
 
 const mangaWatchlistRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: "/manga/watchlist",
   component: MangaWatchlistPage,
 });
 
 const quizRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: "/quiz",
   component: QuizPage,
 });
@@ -151,19 +159,21 @@ const termsRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
-  searchRoute,
-  discoverRoute,
-  animeDetailRoute,
-  genreRoute,
-  randomRoute,
-  scheduleRoute,
-  watchlistRoute,
-  statsRoute,
-  mangaStatsRoute,
-  mangaWatchlistRoute,
-  mangaDetailRoute,
-  mangaRoute,
-  quizRoute,
+  appRoute.addChildren([
+    searchRoute,
+    discoverRoute,
+    animeDetailRoute,
+    genreRoute,
+    randomRoute,
+    scheduleRoute,
+    watchlistRoute,
+    statsRoute,
+    mangaStatsRoute,
+    mangaWatchlistRoute,
+    mangaDetailRoute,
+    mangaRoute,
+    quizRoute,
+  ]),
   changelogRoute,
   aboutRoute,
   privacyRoute,

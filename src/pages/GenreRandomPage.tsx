@@ -3,7 +3,7 @@ import { useParams } from "@tanstack/react-router";
 import { getRandomAnimePick } from "@/lib/api";
 
 export default function GenreRandomPage() {
-  const { genre } = useParams({ from: "/genre/$genre" });
+  const { genre } = useParams({ from: "/app/genre/$genre" });
   const [msg, setMsg] = useState("Picking a random anime in this genre…");
 
   useEffect(() => {
