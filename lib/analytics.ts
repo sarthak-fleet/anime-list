@@ -21,9 +21,12 @@
  */
 "use client";
 
-import posthog from "posthog-js";
-
 const PROJECT = "anime_list" as const;
+
+async function capture(event: string, properties: Record<string, unknown>) {
+  const { default: posthog } = await import("posthog-js");
+  posthog.capture(event, properties);
+}
 
 /** The product-specific action behind a `core_action` event. */
 export type CoreAction = "watchlist_add" | "anime_search" | "manga_search";
@@ -42,7 +45,7 @@ interface AnalyticsEventMap {
 export function trackEvent(event: string, properties: Record<string, unknown> = {}): void {
   try {
     if (typeof window === "undefined") return;
-    posthog.capture(event, { project_id: PROJECT, ...properties });
+    void capture(event, { project_id: PROJECT, ...properties });
   } catch {
     // Analytics must NEVER break a user flow. Swallow and move on.
   }

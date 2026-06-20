@@ -1,10 +1,19 @@
 "use client";
 
-import posthog from "posthog-js";
+import type posthogType from "posthog-js";
 
 const PROJECT_SLUG = "anime_list";
 const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_KEY ?? "phc_qgiAarw4Co4pw9fz3Fxj4UJaHmqzFetqs4JrXhGc35Nd";
 const POSTHOG_HOST = "https://us.i.posthog.com";
+
+let posthogPromise: Promise<typeof posthogType> | null = null;
+
+function loadPosthog() {
+  if (!posthogPromise) {
+    posthogPromise = import("posthog-js").then((mod) => mod.default);
+  }
+  return posthogPromise;
+}
 
 function route() {
   if (typeof window === "undefined") return undefined;
@@ -17,7 +26,11 @@ function messageFrom(error: unknown) {
   return String(error);
 }
 
-export function capturePageCrash(error: unknown, source: "window_error" | "unhandled_rejection" | "manual") {
+export async function capturePageCrash(
+  error: unknown,
+  source: "window_error" | "unhandled_rejection" | "manual",
+) {
+  const posthog = await loadPosthog();
   posthog.capture("foundry_page_crash", {
     project_id: PROJECT_SLUG,
     route: route(),
@@ -36,16 +49,12 @@ type ErrorBoundaryScope =
   | "stats"
   | "unknown";
 
-/**
- * Emits an "error_captured" event for an error surfaced by a React error
- * boundary (error.tsx / global-error.tsx). Use alongside capturePageCrash().
- * Safe to call from the client — no-ops gracefully if PostHog is not ready.
- */
-export function captureError(
+export async function captureError(
   error: unknown,
   options: { scope?: ErrorBoundaryScope; digest?: string; source?: string } = {},
 ) {
   try {
+    const posthog = await loadPosthog();
     posthog.capture("error_captured", {
       project_id: PROJECT_SLUG,
       route: route(),
@@ -62,10 +71,22 @@ export function captureError(
 
 export function installBrowserMonitoring() {
   if (typeof window === "undefined") return () => {};
-  posthog.init(POSTHOG_KEY, { api_host: POSTHOG_HOST, person_profiles: "always", capture_pageview: false, autocapture: false });
 
-  const onError = (event: ErrorEvent) => capturePageCrash(event.error ?? event.message, "window_error");
-  const onUnhandledRejection = (event: PromiseRejectionEvent) => capturePageCrash(event.reason, "unhandled_rejection");
+  void loadPosthog().then((posthog) => {
+    posthog.init(POSTHOG_KEY, {
+      api_host: POSTHOG_HOST,
+      person_profiles: "always",
+      capture_pageview: false,
+      autocapture: false,
+    });
+  });
+
+  const onError = (event: ErrorEvent) => {
+    void capturePageCrash(event.error ?? event.message, "window_error");
+  };
+  const onUnhandledRejection = (event: PromiseRejectionEvent) => {
+    void capturePageCrash(event.reason, "unhandled_rejection");
+  };
 
   window.addEventListener("error", onError);
   window.addEventListener("unhandledrejection", onUnhandledRejection);

@@ -1,11 +1,19 @@
+import { Suspense, lazy } from "react";
 import { Outlet } from "@tanstack/react-router";
 import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/lib/auth";
 import { QueryProvider } from "@/lib/query-provider";
-import FeedbackWidgetWrapper from "@/components/FeedbackWidgetWrapper";
 import { AnalyticsProvider } from "@/components/posthog-provider";
+
+const FeedbackWidgetWrapper = lazy(() => import("@/components/FeedbackWidgetWrapper"));
+
+function RouteFallback() {
+  return (
+    <div className="min-h-[40vh] animate-pulse rounded-lg bg-muted/30" aria-hidden />
+  );
+}
 
 export default function RootLayout() {
   return (
@@ -15,10 +23,14 @@ export default function RootLayout() {
           <AuthProvider>
             <Navigation />
             <main className="max-w-7xl mx-auto px-4 sm:px-6 pb-24 pt-8">
-              <Outlet />
+              <Suspense fallback={<RouteFallback />}>
+                <Outlet />
+              </Suspense>
             </main>
             <Footer />
-            <FeedbackWidgetWrapper />
+            <Suspense fallback={null}>
+              <FeedbackWidgetWrapper />
+            </Suspense>
           </AuthProvider>
         </QueryProvider>
       </NuqsAdapter>

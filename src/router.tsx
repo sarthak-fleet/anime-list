@@ -1,3 +1,4 @@
+import { lazy } from "react";
 import {
   createRouter,
   createRootRoute,
@@ -7,23 +8,6 @@ import {
 import RootLayout from "./RootLayout";
 import NotFoundPage from "./pages/NotFoundPage";
 import HomePage from "./pages/HomePage";
-import SearchPage from "./pages/SearchPage";
-import DiscoverPage from "./pages/DiscoverPage";
-import AnimeDetailPage from "./pages/AnimeDetailPage";
-import MangaDetailPage from "./pages/MangaDetailPage";
-import GenreRandomPage from "./pages/GenreRandomPage";
-import RandomPage from "./pages/RandomPage";
-import SchedulePage from "./pages/SchedulePage";
-import WatchlistPage from "./pages/WatchlistPage";
-import StatsPage from "./pages/StatsPage";
-import MangaSearchPage from "./pages/MangaSearchPage";
-import MangaStatsPage from "./pages/MangaStatsPage";
-import MangaWatchlistPage from "./pages/MangaWatchlistPage";
-import QuizPage from "./pages/QuizPage";
-import ChangelogPage from "./pages/ChangelogPage";
-import AboutPage from "./pages/AboutPage";
-import PrivacyPage from "./pages/PrivacyPage";
-import TermsPage from "./pages/TermsPage";
 
 function validateMalId(malId: string) {
   const numericMalId = Number(malId);
@@ -31,6 +15,24 @@ function validateMalId(malId: string) {
     throw notFound();
   }
 }
+
+const SearchPage = lazy(() => import("./pages/SearchPage"));
+const DiscoverPage = lazy(() => import("./pages/DiscoverPage"));
+const AnimeDetailPage = lazy(() => import("./pages/AnimeDetailPage"));
+const MangaDetailPage = lazy(() => import("./pages/MangaDetailPage"));
+const GenreRandomPage = lazy(() => import("./pages/GenreRandomPage"));
+const RandomPage = lazy(() => import("./pages/RandomPage"));
+const SchedulePage = lazy(() => import("./pages/SchedulePage"));
+const WatchlistPage = lazy(() => import("./pages/WatchlistPage"));
+const StatsPage = lazy(() => import("./pages/StatsPage"));
+const MangaSearchPage = lazy(() => import("./pages/MangaSearchPage"));
+const MangaStatsPage = lazy(() => import("./pages/MangaStatsPage"));
+const MangaWatchlistPage = lazy(() => import("./pages/MangaWatchlistPage"));
+const QuizPage = lazy(() => import("./pages/QuizPage"));
+const ChangelogPage = lazy(() => import("./pages/ChangelogPage"));
+const AboutPage = lazy(() => import("./pages/AboutPage"));
+const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
+const TermsPage = lazy(() => import("./pages/TermsPage"));
 
 const rootRoute = createRootRoute({
   component: RootLayout,

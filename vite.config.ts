@@ -17,6 +17,18 @@ export default defineConfig(() => ({
   },
   build: {
     cssMinify: "lightningcss",
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            if (id.includes("posthog-js")) return "posthog";
+            if (id.includes("@tanstack/react-router")) return "router";
+            if (id.includes("@tanstack/react-query")) return "query";
+            if (id.includes("react-dom") || id.includes("/react/")) return "react";
+          }
+        },
+      },
+    },
   },
   resolve: {
     alias: {
