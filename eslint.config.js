@@ -1,7 +1,7 @@
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", ".next", "build", ".wrangler", ".open-next", "node_modules", "out", "lib/feedback-widget"] },
+  { ignores: ["dist", "build", ".wrangler", "node_modules", "out", "lib/feedback-widget", "app"] },
   ...tseslint.configs.recommended,
   {
     rules: {

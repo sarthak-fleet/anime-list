@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useEffect } from "react";
 import type { MouseEventHandler } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@tanstack/react-router";
 import { X } from "lucide-react";
 
 export default function Modal({ children }: { children: React.ReactNode }) {
@@ -11,7 +11,7 @@ export default function Modal({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   const onDismiss = useCallback(() => {
-    router.back();
+    router.history.back();
   }, [router]);
 
   const onClick: MouseEventHandler<HTMLDivElement> = useCallback(

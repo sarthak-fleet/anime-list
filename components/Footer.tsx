@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { getLastUpdated } from "@/lib/api";
 import { SITE_NAME } from "@/lib/brand";
@@ -38,7 +38,7 @@ export default function Footer() {
             </>
           )}
         </div>
-        <Link href="/changelog" className="hover:text-foreground transition-colors">
+        <Link to="/changelog" className="hover:text-foreground transition-colors">
           Changelog
         </Link>
       </div>

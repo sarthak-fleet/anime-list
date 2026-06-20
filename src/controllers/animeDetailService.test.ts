@@ -1,3 +1,4 @@
+import { beforeEach, describe, it, vi } from 'vitest';
 import axios from "axios";
 import {
   getAnimeRecommendationsCache,
@@ -7,23 +8,23 @@ import {
 } from "../db/animeDetailCache";
 import { getAnimeDetailSupplementalData } from "./animeDetailService";
 
-jest.mock("axios");
-jest.mock("../db/animeDetailCache", () => ({
-  getAnimeRecommendationsCache: jest.fn(),
-  getAnimeRelationsCache: jest.fn(),
-  upsertAnimeRecommendationsCache: jest.fn(),
-  upsertAnimeRelationsCache: jest.fn(),
+vi.mock("axios");
+vi.mock("../db/animeDetailCache", () => ({
+  getAnimeRecommendationsCache: vi.fn(),
+  getAnimeRelationsCache: vi.fn(),
+  upsertAnimeRecommendationsCache: vi.fn(),
+  upsertAnimeRelationsCache: vi.fn(),
 }));
 
-const mockedAxios = jest.mocked(axios);
-const mockedGetRelationsCache = jest.mocked(getAnimeRelationsCache);
-const mockedGetRecommendationsCache = jest.mocked(getAnimeRecommendationsCache);
-const mockedUpsertRelationsCache = jest.mocked(upsertAnimeRelationsCache);
-const mockedUpsertRecommendationsCache = jest.mocked(upsertAnimeRecommendationsCache);
+const mockedAxios = vi.mocked(axios);
+const mockedGetRelationsCache = vi.mocked(getAnimeRelationsCache);
+const mockedGetRecommendationsCache = vi.mocked(getAnimeRecommendationsCache);
+const mockedUpsertRelationsCache = vi.mocked(upsertAnimeRelationsCache);
+const mockedUpsertRecommendationsCache = vi.mocked(upsertAnimeRecommendationsCache);
 
 describe("animeDetailService", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("uses fresh cached relations and recommendations without calling Jikan", async () => {

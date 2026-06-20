@@ -1,3 +1,4 @@
+import { beforeEach, describe, it, vi } from 'vitest';
 import { getAnimeWatchlist, upsertAnimeWatchlist } from "../../db/watchlist";
 import { getSchedule, upsertScheduleItems } from "../../db/schedule";
 import { animeStore } from "../../store/animeStore";
@@ -7,34 +8,34 @@ import {
   buildScheduleTimelineResponse,
 } from "../../services/scheduleService";
 
-jest.mock("../../db/watchlist", () => ({
-  getAnimeWatchlist: jest.fn(),
-  upsertAnimeWatchlist: jest.fn(),
+vi.mock("../../db/watchlist", () => ({
+  getAnimeWatchlist: vi.fn(),
+  upsertAnimeWatchlist: vi.fn(),
 }));
 
-jest.mock("../../db/schedule", () => ({
-  getSchedule: jest.fn(),
-  upsertScheduleItems: jest.fn(),
-  updateScheduleItem: jest.fn(),
-  removeScheduleItems: jest.fn(),
-  reorderSchedule: jest.fn(),
+vi.mock("../../db/schedule", () => ({
+  getSchedule: vi.fn(),
+  upsertScheduleItems: vi.fn(),
+  updateScheduleItem: vi.fn(),
+  removeScheduleItems: vi.fn(),
+  reorderSchedule: vi.fn(),
 }));
 
-jest.mock("../../store/animeStore", () => ({
+vi.mock("../../store/animeStore", () => ({
   animeStore: {
-    getAnimeList: jest.fn(),
+    getAnimeList: vi.fn(),
   },
 }));
 
-const mockedGetAnimeWatchlist = jest.mocked(getAnimeWatchlist);
-const mockedUpsertAnimeWatchlist = jest.mocked(upsertAnimeWatchlist);
-const mockedGetSchedule = jest.mocked(getSchedule);
-const mockedUpsertScheduleItems = jest.mocked(upsertScheduleItems);
-const mockedGetAnimeList = jest.mocked(animeStore.getAnimeList);
+const mockedGetAnimeWatchlist = vi.mocked(getAnimeWatchlist);
+const mockedUpsertAnimeWatchlist = vi.mocked(upsertAnimeWatchlist);
+const mockedGetSchedule = vi.mocked(getSchedule);
+const mockedUpsertScheduleItems = vi.mocked(upsertScheduleItems);
+const mockedGetAnimeList = vi.mocked(animeStore.getAnimeList);
 
 describe("scheduleService", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("does not backfill schedule rows from watchlist items marked Watching", async () => {

@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -92,7 +91,7 @@ function RelatedTitleLink({
 
   if (isAnimeRoute) {
     return (
-      <Link href={href} prefetch={false} className={className}>
+      <Link to={href} className={className}>
         {body}
       </Link>
     );
@@ -208,7 +207,7 @@ export default function AnimeDetailView({ malId, isModal = false }: { malId: num
       <div className={cn("space-y-4", isModal ? "p-6" : "px-6 pt-10")}>
         {!isModal && (
           <Button asChild variant="ghost" size="sm" className="text-white/60 hover:text-white">
-            <Link href="/search"><ArrowLeft className="mr-2 h-4 w-4"/>Back to Discover</Link>
+            <Link to="/search"><ArrowLeft className="mr-2 h-4 w-4"/>Back to Discover</Link>
           </Button>
         )}
         <div className="bg-error-container text-on-error-container p-6 rounded-sm border border-error">
@@ -248,7 +247,7 @@ export default function AnimeDetailView({ malId, isModal = false }: { malId: num
         <div className={cn("flex items-center gap-4", isModal ? "justify-end" : "justify-between")}>
           {!isModal && (
             <Button asChild variant="ghost" size="sm" className="text-white/60 hover:text-white h-8 px-2 border border-outline/20">
-              <Link href="/search">
+              <Link to="/search">
                 <ArrowLeft className="mr-1 h-3 w-3" />
                 Back
               </Link>
@@ -300,7 +299,7 @@ export default function AnimeDetailView({ malId, isModal = false }: { malId: num
         <div className="lg:col-span-4 space-y-8">
           <div className="relative aspect-[2/3] w-full rounded-sm overflow-hidden bg-surface-container-low border border-outline/10 shadow-2xl">
             {anime.image ? (
-              <Image src={anime.image} alt={title} fill priority className="object-cover" sizes="(max-width: 1024px) 100vw, 400px" />
+              <img src={anime.image} alt={title} fetchPriority="high" className="absolute inset-0 h-full w-full object-cover" />
             ) : null}
           </div>
 
@@ -515,10 +514,10 @@ export default function AnimeDetailView({ malId, isModal = false }: { malId: num
                 {recommendations.map((item) => {
                   const itemTitle = animeTitle(item);
                   return (
-                    <Link href={getAnimeDetailHref(item.mal_id)} prefetch={false} key={item.mal_id} className="min-w-[200px] md:min-w-[240px] group cursor-pointer block">
+                    <Link to={getAnimeDetailHref(item.mal_id)} key={item.mal_id} className="min-w-[200px] md:min-w-[240px] group cursor-pointer block">
                       <div className="aspect-[2/3] overflow-hidden bg-surface-container-low mb-3 relative rounded-sm border border-outline/10">
                         {item.image ? (
-                          <Image src={item.image} alt={itemTitle} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="240px" />
+                          <img src={item.image} alt={itemTitle} className="absolute inset-0 h-full w-full object-cover group-hover:scale-105 transition-transform duration-500" />
                         ) : null}
                         <div className="absolute inset-0 bg-primary-container/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                       </div>

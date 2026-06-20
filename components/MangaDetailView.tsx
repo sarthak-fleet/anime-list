@@ -1,8 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ExternalLink, Heart, Star } from "lucide-react";
 import { getMangaDetail, addToMangaWatchlist, getWatchlistTags } from "@/lib/api";
@@ -111,7 +110,7 @@ export default function MangaDetailView({ malId, isModal = false }: { malId: num
         <div className={cn("space-y-4", isModal ? "p-6" : "px-6 pt-10")}>
         {!isModal && (
             <Button asChild variant="ghost" size="sm" className="text-white/60 hover:text-white">
-                <Link href="/manga"><ArrowLeft className="mr-2 h-4 w-4"/>Back to Discover</Link>
+                <Link to="/manga"><ArrowLeft className="mr-2 h-4 w-4"/>Back to Discover</Link>
             </Button>
         )}
         <div className="bg-error-container text-on-error-container p-6 rounded-sm border border-error">
@@ -146,7 +145,7 @@ export default function MangaDetailView({ malId, isModal = false }: { malId: num
         <div className={cn("flex items-center gap-4", isModal ? "justify-end" : "justify-between")}>
           {!isModal && (
             <Button asChild variant="ghost" size="sm" className="text-white/60 hover:text-white h-8 px-2 border border-outline/20">
-              <Link href="/manga">
+              <Link to="/manga">
                 <ArrowLeft className="mr-1 h-3 w-3" />
                 Back
               </Link>
@@ -200,7 +199,7 @@ export default function MangaDetailView({ malId, isModal = false }: { malId: num
         <div className="lg:col-span-4 space-y-8">
           <div className="relative aspect-[2/3] w-full rounded-sm overflow-hidden bg-surface-container-low border border-outline/10 shadow-2xl">
             {manga.image ? (
-              <Image src={manga.image} alt={title} fill priority className="object-cover" sizes="(max-width: 1024px) 100vw, 400px" />
+              <img src={manga.image} alt={title} fetchPriority="high" className="absolute inset-0 h-full w-full object-cover" />
             ) : null}
           </div>
 

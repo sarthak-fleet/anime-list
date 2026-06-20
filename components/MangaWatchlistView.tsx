@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ExternalLink } from "lucide-react";
 import type { EnrichedMangaWatchlistItem } from "@/lib/types";
@@ -175,15 +174,13 @@ export default function MangaWatchlistView() {
             <Card key={item.mal_id} className="overflow-hidden flex flex-row p-0 hover:border-primary/30 transition-colors">
               {item.image ? (
                 <Link
-                  href={getMangaDetailHref(item.mal_id)}
+                  to={getMangaDetailHref(item.mal_id)}
                   className="relative block w-[85px] min-h-[120px] shrink-0"
                 >
-                  <Image
+                  <img
                     src={item.image}
                     alt={item.title}
-                    fill
-                    className="object-cover"
-                    sizes="85px"
+                    className="absolute inset-0 h-full w-full object-cover"
                   />
                 </Link>
               ) : (
@@ -193,7 +190,7 @@ export default function MangaWatchlistView() {
               <div className="flex-1 p-3 space-y-2 min-w-0">
                 <div className="flex items-start justify-between gap-2">
                   <Link
-                    href={getMangaDetailHref(item.mal_id)}
+                    to={getMangaDetailHref(item.mal_id)}
                     className="font-medium text-foreground hover:text-primary truncate"
                   >
                     {item.title}

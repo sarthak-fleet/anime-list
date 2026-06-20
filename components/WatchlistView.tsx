@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ExternalLink } from "lucide-react";
 import type { EnrichedWatchlistItem } from "@/lib/types";
@@ -489,11 +488,11 @@ export default function WatchlistView() {
               {recommendations.slice(0, 6).map((item) => (
                 <Link
                   key={item.mal_id}
-                  href={getAnimeDetailHref(item.mal_id)}
+                  to={getAnimeDetailHref(item.mal_id)}
                   className="group flex gap-3 rounded-lg border border-border p-3 transition-colors hover:border-primary/50"
                 >
                   {item.image ? (
-                    <Image
+                    <img
                       src={item.image}
                       alt={item.title_english || item.title}
                       width={56}
@@ -541,15 +540,13 @@ export default function WatchlistView() {
             <Card key={item.mal_id} className="overflow-hidden flex flex-row p-0 hover:border-primary/30 transition-colors">
               {item.image ? (
                 <Link
-                  href={getAnimeDetailHref(item.mal_id)}
+                  to={getAnimeDetailHref(item.mal_id)}
                   className="relative block w-[85px] min-h-[120px] shrink-0"
                 >
-                  <Image
+                  <img
                     src={item.image}
                     alt={item.title}
-                    fill
-                    className="object-cover"
-                    sizes="85px"
+                    className="absolute inset-0 h-full w-full object-cover"
                   />
                 </Link>
               ) : (
@@ -561,7 +558,7 @@ export default function WatchlistView() {
               <div className="flex-1 p-3 flex flex-col gap-1.5 min-w-0">
                 <div className="flex items-start justify-between gap-2">
                   <Link
-                    href={getAnimeDetailHref(item.mal_id)}
+                    to={getAnimeDetailHref(item.mal_id)}
                     className="min-w-0 flex-1 text-sm font-medium text-foreground hover:text-primary transition-colors truncate"
                   >
                     {item.title}

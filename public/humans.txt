@@ -1,0 +1,11 @@
+/* TEAM */
+Maintainer: Sarthak Agrawal
+GitHub: sarthakagrawal927
+
+/* THANKS */
+MyAnimeList and AniList — the upstream data sources.
+Jikan — the unofficial MAL API.
+
+/* SITE */
+Last updated: 2026-06-20
+Software: Vite, React, TanStack Router, Turso (libSQL), Cloudflare Worker (Hono cron)

@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { SITE_NAME } from "@/lib/brand";
 import { Button } from "@/components/ui/button";
@@ -45,7 +44,7 @@ function isActiveLink(pathname: string, href: string) {
 }
 
 export default function Navigation() {
-  const pathname = usePathname();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user, loading, logout } = useAuth();
   const mangaMode = isMangaPath(pathname);
   const links = mangaMode ? mangaLinks : animeLinks;
@@ -59,7 +58,7 @@ export default function Navigation() {
     <nav className="sticky top-0 z-50 border-b border-border/80 bg-background/90 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center h-14 gap-6">
         <Link
-          href={homeHref}
+          to={homeHref}
           className="text-lg font-semibold tracking-tight text-foreground whitespace-nowrap"
         >
           {SITE_NAME}
@@ -67,7 +66,7 @@ export default function Navigation() {
 
         <div className="hidden sm:flex items-center gap-1 rounded-lg bg-muted/60 p-1">
           <Link
-            href={animeSectionHref}
+            to={animeSectionHref}
             className={cn(
               "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
               !mangaMode ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
@@ -76,7 +75,7 @@ export default function Navigation() {
             Anime
           </Link>
           <Link
-            href={mangaSectionHref}
+            to={mangaSectionHref}
             className={cn(
               "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
               mangaMode ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
@@ -92,7 +91,7 @@ export default function Navigation() {
             return (
               <Link
                 key={link.href}
-                href={link.href}
+                to={link.href}
                 className={cn(
                   "px-3 py-2 text-sm font-medium rounded-md transition-colors",
                   active
@@ -116,12 +115,12 @@ export default function Navigation() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="bg-popover border-border">
               <DropdownMenuItem asChild>
-                <Link href={animeSectionHref} className={cn("w-full cursor-pointer text-sm", !mangaMode ? "text-primary" : "")}>
+                <Link to={animeSectionHref} className={cn("w-full cursor-pointer text-sm", !mangaMode ? "text-primary" : "")}>
                   Anime
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href={mangaSectionHref} className={cn("w-full cursor-pointer text-sm", mangaMode ? "text-primary" : "")}>
+                <Link to={mangaSectionHref} className={cn("w-full cursor-pointer text-sm", mangaMode ? "text-primary" : "")}>
                   Manga
                 </Link>
               </DropdownMenuItem>
@@ -130,7 +129,7 @@ export default function Navigation() {
                 return (
                   <DropdownMenuItem key={link.href} asChild>
                     <Link
-                      href={link.href}
+                      to={link.href}
                       className={cn(
                         "w-full cursor-pointer text-sm",
                         active ? "text-primary" : "",

@@ -1,13 +1,7 @@
 {
-  "extends": "@saas-maker/tsconfig/next.json",
-  "compilerOptions": {
-    "paths": { "@/*": ["./*"] }
-  },
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts"
-  ],
-  "exclude": ["node_modules", ".open-next", ".pages-deploy", "e2e", "scripts", "src"]
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
 }

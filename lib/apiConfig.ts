@@ -10,13 +10,13 @@ function isLocalHostname(hostname: string): boolean {
 }
 
 export function getApiUrl(hostname?: string): string {
-  const configuredUrl = process.env["NEXT_PUBLIC_API_URL"]?.trim();
+  const configuredUrl = import.meta.env.VITE_API_URL?.trim();
   if (configuredUrl) {
     return stripTrailingSlash(configuredUrl);
   }
 
   const currentHostname = hostname ?? (typeof window !== "undefined" ? window.location.hostname : "");
-  if (process.env.NODE_ENV !== "production" && isLocalHostname(currentHostname)) {
+  if (import.meta.env.DEV && isLocalHostname(currentHostname)) {
     return LOCAL_API_URL;
   }
 

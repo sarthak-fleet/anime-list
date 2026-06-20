@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import type { SearchFilter } from "@/lib/types";
 
@@ -174,11 +174,11 @@ export default function AnimeIdentityQuiz() {
           <p className="mt-3 text-xs text-muted-foreground">Result URL only encodes: {result.id}</p>
         </div>
         <Button asChild className="mt-5 w-full" disabled={!complete}>
-          <Link href={complete ? buildSearchHref(result) : "#"}>Explore shows for this archetype</Link>
+          <Link to={complete ? buildSearchHref(result) : "/quiz"}>Explore shows for this archetype</Link>
         </Button>
         <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs text-muted-foreground">
           {result.exemplarMalIds.map((id) => (
-            <Link key={id} href={`/anime/${id}`} className="rounded-md border border-border px-2 py-2 hover:text-foreground">
+            <Link key={id} to="/anime/$malId" params={{ malId: String(id) }} className="rounded-md border border-border px-2 py-2 hover:text-foreground">
               MAL {id}
             </Link>
           ))}

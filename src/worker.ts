@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { isAllowedOrigin } from "./corsOrigins";
 import { SignJWT, jwtVerify, createRemoteJWKSet } from "jose";
-import { configurePostHog, trace, flushPostHog } from "@saas-maker/ops";
+import { configurePostHog, trace, flushPostHog } from "./telemetry";
 
 // Business logic imports (all unchanged files)
 import { filterAnimeList } from "./filterEngine";

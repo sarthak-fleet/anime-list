@@ -1,8 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ExternalLink } from "lucide-react";
 import type { EnrichedWatchlistItem, ScheduleItem, ScheduleTimelineDay } from "@/lib/types";
@@ -453,7 +452,7 @@ export default function ScheduleView() {
                     className="rounded"
                   />
                   {item.image && (
-                    <Image src={item.image} alt="" width={28} height={40} className="rounded object-cover" />
+                    <img src={item.image} alt="" width={28} height={40} className="rounded object-cover" />
                   )}
                   <span className="text-sm truncate flex-1">{item.title}</span>
                   <span className="text-xs text-muted-foreground shrink-0">
@@ -492,10 +491,10 @@ export default function ScheduleView() {
             >
               {item.image ? (
                 <Link
-                  href={getAnimeDetailHref(item.mal_id)}
+                  to={getAnimeDetailHref(item.mal_id)}
                   className="relative block w-[60px] min-h-[80px] shrink-0"
                 >
-                  <Image src={item.image} alt={item.title} fill className="object-cover" sizes="60px" />
+                  <img src={item.image} alt={item.title} className="absolute inset-0 h-full w-full object-cover" />
                 </Link>
               ) : (
                 <div className="w-[60px] min-h-[80px] shrink-0 bg-muted" />
@@ -517,7 +516,7 @@ export default function ScheduleView() {
                 <div className="flex flex-col gap-0.5 flex-1 min-w-0">
                   <div className="flex items-start gap-2">
                     <Link
-                      href={getAnimeDetailHref(item.mal_id)}
+                      to={getAnimeDetailHref(item.mal_id)}
                       className="min-w-0 flex-1 truncate text-sm font-medium transition-colors hover:text-primary"
                     >
                       {item.title}
@@ -605,10 +604,10 @@ export default function ScheduleView() {
                       )}
                     >
                       {entry.image && (
-                        <Image src={entry.image} alt="" width={20} height={28} className="rounded object-cover shrink-0" />
+                        <img src={entry.image} alt="" width={20} height={28} className="rounded object-cover shrink-0" />
                       )}
                       <Link
-                        href={getAnimeDetailHref(entry.mal_id)}
+                        to={getAnimeDetailHref(entry.mal_id)}
                         className="truncate flex-1 transition-colors hover:text-primary"
                       >
                         {entry.title}

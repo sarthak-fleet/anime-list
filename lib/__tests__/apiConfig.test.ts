@@ -1,42 +1,36 @@
-import { getApiUrl, LOCAL_API_URL, PRODUCTION_API_URL } from "../apiConfig";
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { getApiUrl, LOCAL_API_URL, PRODUCTION_API_URL } from '../apiConfig';
 
-const originalEnv = process.env["NEXT_PUBLIC_API_URL"];
-const originalNodeEnv = process.env.NODE_ENV;
-
-describe("getApiUrl", () => {
+describe('getApiUrl', () => {
   afterEach(() => {
-    process.env["NEXT_PUBLIC_API_URL"] = originalEnv;
-    Object.defineProperty(process.env, "NODE_ENV", {
-      configurable: true,
-      value: originalNodeEnv,
-    });
+    vi.unstubAllEnvs();
   });
 
-  it("uses configured deployment API URL when present", () => {
-    process.env["NEXT_PUBLIC_API_URL"] = `${PRODUCTION_API_URL}/`;
+  it('uses configured deployment API URL when present', () => {
+    vi.stubEnv('VITE_API_URL', `${PRODUCTION_API_URL}/`);
 
-    expect(getApiUrl("anime-list-9lk.pages.dev")).toBe(PRODUCTION_API_URL);
+    expect(getApiUrl('anime-list-9lk.pages.dev')).toBe(PRODUCTION_API_URL);
   });
 
-  it("falls back to production API on deployed hosts", () => {
-    delete process.env["NEXT_PUBLIC_API_URL"];
+  it('falls back to production API on deployed hosts', () => {
+    vi.stubEnv('VITE_API_URL', '');
 
-    expect(getApiUrl("anime-list-9lk.pages.dev")).toBe(PRODUCTION_API_URL);
+    expect(getApiUrl('anime-list-9lk.pages.dev')).toBe(PRODUCTION_API_URL);
   });
 
-  it("uses localhost only for local browser development", () => {
-    delete process.env["NEXT_PUBLIC_API_URL"];
+  it('uses localhost only for local browser development', () => {
+    vi.stubEnv('VITE_API_URL', '');
+    vi.stubEnv('DEV', true);
+    vi.stubEnv('PROD', false);
 
-    expect(getApiUrl("localhost")).toBe(LOCAL_API_URL);
+    expect(getApiUrl('localhost')).toBe(LOCAL_API_URL);
   });
 
-  it("does not fall back to localhost in production", () => {
-    delete process.env["NEXT_PUBLIC_API_URL"];
-    Object.defineProperty(process.env, "NODE_ENV", {
-      configurable: true,
-      value: "production",
-    });
+  it('does not fall back to localhost in production', () => {
+    vi.stubEnv('VITE_API_URL', '');
+    vi.stubEnv('DEV', false);
+    vi.stubEnv('PROD', true);
 
-    expect(getApiUrl("localhost")).toBe(PRODUCTION_API_URL);
+    expect(getApiUrl('localhost')).toBe(PRODUCTION_API_URL);
   });
 });

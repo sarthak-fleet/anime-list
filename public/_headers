@@ -1,12 +1,9 @@
-# Per-page static HTML — Next.js prerendered routes ship as static html
-# under .vercel/output/static + functions. CF Pages returns cf-cache-status:
-# DYNAMIC with just s-maxage; adding max-age makes CF Edge actually cache
-# the HTML body.
+# SPA shell — cache HTML at the edge with SWR
 /
   Cache-Control: public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800
-/*.html
+/index.html
   Cache-Control: public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800
 
-# Next.js immutable hashed assets.
-/_next/static/*
+# Vite hashed assets
+/assets/*
   Cache-Control: public, max-age=31536000, immutable

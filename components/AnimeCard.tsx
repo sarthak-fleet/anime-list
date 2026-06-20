@@ -1,8 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ExternalLink } from "lucide-react";
 import type { AnimeSummary } from "@/lib/types";
@@ -98,17 +97,15 @@ export default function AnimeCard({
   return (
     <div className="group relative cursor-pointer block">
       {/* Poster image */}
-      <Link href={detailHref} prefetch={false} className="block">
+      <Link to={detailHref} className="block">
         <div className="aspect-[2/3] relative overflow-hidden bg-surface-container-low mb-4">
           {anime.image ? (
-            <Image
+            <img
               src={anime.image}
               alt={title}
-              fill
-              quality={60}
-              priority={priority}
-              className="object-cover transition-transform duration-500 group-hover:scale-105"
-              sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 185px"
+              loading={priority ? "eager" : "lazy"}
+              fetchPriority={priority ? "high" : "auto"}
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center">
@@ -164,8 +161,7 @@ export default function AnimeCard({
       <div className="mt-2 flex items-start gap-2 justify-between">
         <div className="min-w-0 flex-1">
           <Link
-            href={detailHref}
-            prefetch={false}
+            to={detailHref}
             className="block w-full"
           >
             <h4 className="font-medium text-base text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-snug">

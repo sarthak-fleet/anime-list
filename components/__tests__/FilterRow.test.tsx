@@ -1,6 +1,6 @@
+import { describe, expect, it, vi } from 'vitest';
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
-import "@testing-library/jest-dom";
 import type { FieldOptions, FilterActions, SearchFilter } from "@/lib/types";
 
 import FilterRow from "../FilterRow";
@@ -24,7 +24,7 @@ const actions: FilterActions = {
 
 describe("FilterRow", () => {
   it("switches type filters to a single-value enum action", () => {
-    const onChange = jest.fn();
+    const onChange = vi.fn();
     const filter: SearchFilter = {
       field: "score",
       action: "GREATER_THAN_OR_EQUALS",
@@ -38,7 +38,7 @@ describe("FilterRow", () => {
         fields={fields}
         actions={actions}
         onChange={onChange}
-        onRemove={jest.fn()}
+        onRemove={vi.fn()}
       />
     );
 
@@ -57,7 +57,7 @@ describe("FilterRow", () => {
   });
 
   it("normalizes legacy type filters before sending updates", () => {
-    const onChange = jest.fn();
+    const onChange = vi.fn();
     const filter: SearchFilter = {
       field: "type",
       action: "INCLUDES_ANY",
@@ -71,7 +71,7 @@ describe("FilterRow", () => {
         fields={fields}
         actions={actions}
         onChange={onChange}
-        onRemove={jest.fn()}
+        onRemove={vi.fn()}
       />
     );
 

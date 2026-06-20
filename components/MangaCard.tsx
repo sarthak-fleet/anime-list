@@ -1,8 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ExternalLink } from "lucide-react";
 import type { AnimeSummary } from "@/lib/types";
@@ -83,16 +82,15 @@ export default function MangaCard({
 
   return (
     <article className="group relative flex flex-col">
-      <Link href={getMangaDetailHref(manga.id)} className="block">
+      <Link to={getMangaDetailHref(manga.id)} className="block">
         <div className="relative aspect-[2/3] overflow-hidden rounded-sm bg-surface-container-high shadow-lg transition-transform duration-300 group-hover:scale-[1.02]">
           {manga.image ? (
-            <Image
+            <img
               src={manga.image}
               alt={displayTitle}
-              fill
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
-              className="object-cover"
-              priority={priority}
+              loading={priority ? "eager" : "lazy"}
+              fetchPriority={priority ? "high" : "auto"}
+              className="absolute inset-0 h-full w-full object-cover"
             />
           ) : (
             <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
@@ -108,7 +106,7 @@ export default function MangaCard({
       </Link>
 
       <div className="mt-3 space-y-1">
-        <Link href={getMangaDetailHref(manga.id)}>
+        <Link to={getMangaDetailHref(manga.id)}>
           <h3 className="line-clamp-2 text-sm font-bold uppercase tracking-tight text-white group-hover:text-primary transition-colors">
             {displayTitle}
           </h3>
