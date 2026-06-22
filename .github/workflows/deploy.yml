@@ -2,10 +2,10 @@ name: Deploy anime_list to Cloudflare Pages
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/deploy.yml', 'app/**', 'src/**', 'components/**', 'lib/**', 'scripts/prepare-pages-deploy.mjs', 'package.json', 'pnpm-lock.yaml', 'next.config.*', 'open-next.config.ts', 'wrangler.toml']
+    paths: ['.github/workflows/deploy.yml', 'src/**', 'components/**', 'lib/**', 'index.html', 'vite.config.*', 'package.json', 'pnpm-lock.yaml', 'wrangler.toml']
   pull_request:
     branches: [main]
-    paths: ['.github/workflows/deploy.yml', 'app/**', 'src/**', 'components/**', 'lib/**', 'scripts/prepare-pages-deploy.mjs', 'package.json', 'pnpm-lock.yaml', 'next.config.*', 'open-next.config.ts', 'wrangler.toml']
+    paths: ['.github/workflows/deploy.yml', 'src/**', 'components/**', 'lib/**', 'index.html', 'vite.config.*', 'package.json', 'pnpm-lock.yaml', 'wrangler.toml']
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -21,20 +21,20 @@ jobs:
       - uses: actions/setup-node@v6
         with: { node-version: '22', cache: 'pnpm' }
       - run: pnpm install --frozen-lockfile --ignore-scripts
-      - run: pnpm pages:build
+      - run: pnpm build
         env:
-          # NEXT_PUBLIC_* values are inlined into the client bundle at build
-          # time. wrangler.toml [vars] only applies at runtime to server code,
-          # so the client would otherwise see them as undefined.
-          NEXT_PUBLIC_API_URL: https://mal-api.sarthakagrawal927.workers.dev
-          NEXT_PUBLIC_GOOGLE_CLIENT_ID: 207924374505-0mur9a99sal0ckob0vt38pcdj360ond5.apps.googleusercontent.com
-          NEXT_PUBLIC_SAASMAKER_API_KEY: pk_fb1fe870205272a447298bfac32122383426d6a1c1fb10ab
+          # VITE_* values are inlined into the client bundle at build time via
+          # import.meta.env. wrangler.toml [vars] only applies at runtime to the
+          # worker, so the client would otherwise see these as undefined.
+          VITE_API_URL: https://mal-api.sarthakagrawal927.workers.dev
+          VITE_GOOGLE_CLIENT_ID: 207924374505-0mur9a99sal0ckob0vt38pcdj360ond5.apps.googleusercontent.com
+          VITE_SAASMAKER_API_KEY: pk_fb1fe870205272a447298bfac32122383426d6a1c1fb10ab
       - id: deploy
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy .pages-deploy --project-name=anime-list --branch=main --commit-dirty=true
+          command: pages deploy dist --project-name=anime-list --branch=main --commit-dirty=true
       - name: Smoke production
         run: |
           set -euo pipefail
@@ -54,17 +54,17 @@ jobs:
       - uses: actions/setup-node@v6
         with: { node-version: '22', cache: 'pnpm' }
       - run: pnpm install --frozen-lockfile --ignore-scripts
-      - run: pnpm pages:build
+      - run: pnpm build
         env:
-          NEXT_PUBLIC_API_URL: https://mal-api.sarthakagrawal927.workers.dev
-          NEXT_PUBLIC_GOOGLE_CLIENT_ID: 207924374505-0mur9a99sal0ckob0vt38pcdj360ond5.apps.googleusercontent.com
-          NEXT_PUBLIC_SAASMAKER_API_KEY: pk_fb1fe870205272a447298bfac32122383426d6a1c1fb10ab
+          VITE_API_URL: https://mal-api.sarthakagrawal927.workers.dev
+          VITE_GOOGLE_CLIENT_ID: 207924374505-0mur9a99sal0ckob0vt38pcdj360ond5.apps.googleusercontent.com
+          VITE_SAASMAKER_API_KEY: pk_fb1fe870205272a447298bfac32122383426d6a1c1fb10ab
       - id: deploy
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy .pages-deploy --project-name=anime-list --branch=pr-${{ github.event.number }} --commit-dirty=true
+          command: pages deploy dist --project-name=anime-list --branch=pr-${{ github.event.number }} --commit-dirty=true
       - name: Smoke preview
         run: |
           set -euo pipefail
