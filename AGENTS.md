@@ -13,7 +13,7 @@ Anime/manga discovery platform with multi-field filtering, personal watchlists, 
 - Styling: Tailwind CSS v4 + shadcn/ui
 - DB: Turso (libSQL) — anime + manga catalogs, users, watchlists (single DB in prod; optional `TURSO_MANGA_*` override)
 - Auth: Google OAuth 2.0 + JWT (`jose`)
-- Testing: Jest (unit), Playwright (e2e)
+- Testing: Vitest (unit), Playwright (e2e)
 - Deploy: Cloudflare Pages (`anime-list-9lk.pages.dev`) + Worker `mal-api` (`wrangler deploy`)
 - Package manager: pnpm
 
