@@ -140,6 +140,11 @@ type Env = {
 
 const SEARCH_CACHE_TTL_SECONDS = 180;
 const STATS_CACHE_TTL_SECONDS = 300;
+// last-updated is a global, public, non-user value that changes once daily via
+// the cron sync. Edge-caching it keeps the only previously-uncached public read
+// endpoint off two full-table MAX(updated_at) scans on every request.
+const LAST_UPDATED_CACHE_TTL_SECONDS = 300;
+const LAST_UPDATED_CACHE_URL = "https://mal-cache.local/api/last-updated?v=1";
 const SEARCH_SYNOPSIS_MAX = 220;
 
 const truncateSynopsis = (text: string | undefined): string | undefined => {
@@ -448,6 +453,16 @@ app.get("/api/filters", (c) =>
 );
 
 app.get("/api/last-updated", async (c) => {
+  const edgeCache = (caches as unknown as { default: Cache }).default;
+  const cacheRequest = new Request(LAST_UPDATED_CACHE_URL);
+
+  const cachedResponse = await edgeCache.match(cacheRequest);
+  if (cachedResponse) {
+    const response = new Response(cachedResponse.body, cachedResponse);
+    response.headers.set("X-Last-Updated-Cache", "HIT");
+    return response;
+  }
+
   const [anime, manga] = await Promise.all([
     getLastDataUpdate(),
     getLastMangaDataUpdate(),
@@ -459,7 +474,18 @@ app.get("/api/last-updated", async (c) => {
           (a, b) => new Date(b).getTime() - new Date(a).getTime(),
         )[0]
       : null;
-  return c.json({ lastUpdated, anime, manga });
+
+  const response = c.json({ lastUpdated, anime, manga });
+  response.headers.set("X-Last-Updated-Cache", "MISS");
+  const cacheableResponse = new Response(response.body, response);
+  cacheableResponse.headers.set(
+    "Cache-Control",
+    `public, max-age=0, s-maxage=${LAST_UPDATED_CACHE_TTL_SECONDS}`,
+  );
+  c.executionCtx.waitUntil(
+    edgeCache.put(cacheRequest, cacheableResponse.clone()),
+  );
+  return cacheableResponse;
 });
 
 app.get("/api/changelog", async (c) => {
