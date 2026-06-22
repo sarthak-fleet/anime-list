@@ -208,8 +208,15 @@ export interface TasteRecommendationsResponse {
   recommendations: TasteRecommendation[];
 }
 
+export interface WatchlistImportConflict {
+  malId: string;
+  title?: string;
+  incomingStatus: string;
+  existingStatus: string;
+}
+
 export interface WatchlistImportPreview {
-  source: "mal" | "anilist";
+  source: "mal" | "anilist" | "shelf";
   entries: {
     malId: string;
     status: string;
@@ -220,7 +227,61 @@ export interface WatchlistImportPreview {
   }[];
   statusCounts: Record<string, number>;
   skipped: number;
+  conflicts?: WatchlistImportConflict[];
+  newCount?: number;
   imported?: number;
+  mode?: "merge" | "replace" | "skip";
+}
+
+export interface SavedSearch {
+  id: string;
+  user_id: string;
+  name: string;
+  filters_json: string;
+  channel: string;
+  frequency: string;
+  paused: number;
+  last_checked_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SavedSearchAlert {
+  id: string;
+  saved_search_id: string;
+  mal_id: string;
+  title_type: string;
+  title: string | null;
+  match_reason: string | null;
+  created_at: string;
+  seen_at: string | null;
+  search_name: string;
+}
+
+export interface CollectionSummary {
+  id: string;
+  user_id: string;
+  slug: string;
+  title: string;
+  description: string;
+  visibility: string;
+  cover_mode: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CollectionItem {
+  id: string;
+  collection_id: string;
+  mal_id: string;
+  media_type: string;
+  position: number;
+  note: string | null;
+  title?: string;
+  image?: string;
+  score?: number;
+  year?: number;
+  url?: string;
 }
 
 export interface AniListExportResponse {

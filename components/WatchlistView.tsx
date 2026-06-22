@@ -9,7 +9,9 @@ import {
   addToWatchlist,
   deleteWatchlistTag,
   applyWatchlistImport,
+  downloadShelfWatchlistCsv,
   exportAniListWatchlist,
+  exportShelfWatchlistJson,
   getEnrichedWatchlist,
   getTasteRecommendations,
   getWatchlistTags,
@@ -46,7 +48,12 @@ export default function WatchlistView() {
   const [activeTab, setActiveTab] = useState("");
   const [showListSettings, setShowListSettings] = useState(false);
   const [showSyncTools, setShowSyncTools] = useState(false);
-  const [syncSource, setSyncSource] = useState<"mal" | "anilist">("mal");
+  const [syncSource, setSyncSource] = useState<"mal" | "anilist" | "shelf">("mal");
+  const [importMode, setImportMode] = useState<"merge" | "replace" | "skip">("merge");
+  const [importPreview, setImportPreview] = useState<{
+    newCount?: number;
+    conflicts?: Array<{ malId: string; title?: string; incomingStatus: string; existingStatus: string }>;
+  } | null>(null);
   const [syncPayload, setSyncPayload] = useState("");
   const [syncResult, setSyncResult] = useState<string | null>(null);
   const [newTagName, setNewTagName] = useState("");
@@ -123,25 +130,34 @@ export default function WatchlistView() {
   const previewImportMutation = useMutation({
     mutationFn: () => previewWatchlistImport(syncSource, syncPayload),
     onSuccess: (result) => {
+      setImportPreview(result);
       setSyncResult(
-        `Preview: ${result.entries.length} importable, ${result.skipped} skipped. ${Object.entries(result.statusCounts)
-          .map(([status, count]) => `${status}: ${count}`)
-          .join(" · ")}`,
+        `Preview: ${result.newCount ?? 0} new, ${result.conflicts?.length ?? 0} conflicts, ${result.entries.length} total rows, ${result.skipped} skipped.`,
       );
     },
   });
 
   const applyImportMutation = useMutation({
-    mutationFn: () => applyWatchlistImport(syncSource, syncPayload),
+    mutationFn: () => applyWatchlistImport(syncSource, syncPayload, importMode),
     onSuccess: (result) => {
-      setSyncResult(`Imported ${result.imported ?? result.entries.length} items from ${result.source}.`);
+      setImportPreview(null);
+      setSyncResult(`Imported ${result.imported ?? result.entries.length} items (${result.mode ?? importMode}).`);
       queryClient.invalidateQueries({ queryKey: ["watchlist"] });
       queryClient.invalidateQueries({ queryKey: ["watchlist", "tags"] });
       queryClient.invalidateQueries({ queryKey: ["watchlist", "recommendations"] });
     },
   });
 
-  const exportMutation = useMutation({
+  const exportJsonMutation = useMutation({
+    mutationFn: () => exportShelfWatchlistJson(),
+    onSuccess: async (result) => {
+      const text = JSON.stringify(result, null, 2);
+      await navigator.clipboard?.writeText(text);
+      setSyncResult(`Copied Shelf JSON backup (${result.anime.length} titles) to clipboard.`);
+    },
+  });
+
+  const exportAniListMutation = useMutation({
     mutationFn: () => exportAniListWatchlist(),
     onSuccess: async (result) => {
       const text = JSON.stringify(result.entries, null, 2);
@@ -286,26 +302,70 @@ export default function WatchlistView() {
         <Card className="space-y-3 p-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
-              <h3 className="text-sm font-medium text-foreground">MAL / AniList Sync</h3>
+              <h3 className="text-sm font-medium text-foreground">Import / Export</h3>
               <p className="mt-1 text-xs text-muted-foreground">
-                Paste a MyAnimeList XML export or AniList MediaList JSON to preview and import.
+                Export Shelf JSON/CSV backups, or import MAL XML, MAL CSV, AniList JSON, or Shelf JSON.
               </p>
             </div>
             <select
               value={syncSource}
-              onChange={(event) => setSyncSource(event.target.value as "mal" | "anilist")}
+              onChange={(event) => setSyncSource(event.target.value as "mal" | "anilist" | "shelf")}
               className="h-8 rounded-md border border-input bg-background px-2 text-xs"
             >
-              <option value="mal">MyAnimeList XML</option>
+              <option value="mal">MyAnimeList XML / CSV</option>
               <option value="anilist">AniList JSON</option>
+              <option value="shelf">Shelf JSON backup</option>
             </select>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => exportJsonMutation.mutate()}
+              disabled={exportJsonMutation.isPending}
+              className="h-8 rounded-md px-3 text-xs border border-border hover:bg-accent disabled:opacity-60"
+            >
+              Copy Shelf JSON
+            </button>
+            <button
+              onClick={async () => {
+                await downloadShelfWatchlistCsv();
+                setSyncResult("Downloaded shelf-watchlist.csv");
+              }}
+              className="h-8 rounded-md px-3 text-xs border border-border hover:bg-accent"
+            >
+              Download CSV
+            </button>
+            <button
+              onClick={() => exportAniListMutation.mutate()}
+              disabled={exportAniListMutation.isPending}
+              className="h-8 rounded-md px-3 text-xs border border-border hover:bg-accent disabled:opacity-60"
+            >
+              Copy AniList JSON
+            </button>
           </div>
           <textarea
             value={syncPayload}
             onChange={(event) => setSyncPayload(event.target.value)}
-            placeholder={syncSource === "mal" ? "<myanimelist>...</myanimelist>" : "{\"lists\":[...]}"}
+            placeholder={
+              syncSource === "mal"
+                ? "<myanimelist>...</myanimelist> or mal_id,title,status CSV"
+                : syncSource === "shelf"
+                  ? '{"version":1,"anime":[...]}'
+                  : '{"lists":[...]}'
+            }
             className="min-h-36 w-full rounded-md border border-input bg-background p-3 font-mono text-xs"
           />
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="text-xs text-muted-foreground">Import mode</label>
+            <select
+              value={importMode}
+              onChange={(event) => setImportMode(event.target.value as "merge" | "replace" | "skip")}
+              className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+            >
+              <option value="merge">Merge (skip conflicts)</option>
+              <option value="replace">Replace conflicts</option>
+              <option value="skip">New titles only</option>
+            </select>
+          </div>
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => previewImportMutation.mutate()}
@@ -321,14 +381,19 @@ export default function WatchlistView() {
             >
               Apply Import
             </button>
-            <button
-              onClick={() => exportMutation.mutate()}
-              disabled={exportMutation.isPending}
-              className="h-8 rounded-md px-3 text-xs border border-border hover:bg-accent disabled:opacity-60"
-            >
-              Copy AniList Export
-            </button>
           </div>
+          {importPreview?.conflicts && importPreview.conflicts.length > 0 && (
+            <div className="rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-muted-foreground">
+              {importPreview.conflicts.length} conflict(s) detected. Use Replace to overwrite, or Merge/Skip to avoid silent overwrites.
+              <ul className="mt-2 space-y-1">
+                {importPreview.conflicts.slice(0, 5).map((row) => (
+                  <li key={row.malId}>
+                    {row.title ?? row.malId}: {row.existingStatus} → {row.incomingStatus}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {syncResult && (
             <p className="rounded-md border border-border bg-secondary/50 px-3 py-2 text-xs text-muted-foreground">
               {syncResult}

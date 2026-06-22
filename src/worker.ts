@@ -53,9 +53,33 @@ import {
 } from "./validators/watchlistTags";
 import {
   buildAniListExport,
-  parseMalAnimeXml,
-  safeParseAniListJson,
+  buildShelfCsvExport,
+  buildShelfJsonExport,
+  applyImportMode,
+  parseImportPayload,
+  withImportConflicts,
+  type WatchlistImportMode,
 } from "./watchlistSync";
+import {
+  initSavedSearchTables,
+  listSavedSearches,
+  createSavedSearch,
+  updateSavedSearch,
+  deleteSavedSearch,
+  listSavedSearchAlerts,
+  markSavedSearchAlertsSeen,
+  countUnseenAlerts,
+  evaluateSavedSearchesAfterCatalogRefresh,
+} from "./db/savedSearches";
+import {
+  initCollectionTables,
+  listUserCollections,
+  getCollectionBySlug,
+  getCollectionItems,
+  createCollection,
+  updateCollection,
+  deleteCollection,
+} from "./db/collections";
 import {
   addToScheduleSchema,
   updateScheduleItemSchema,
@@ -300,6 +324,8 @@ app.use("*", async (_c, next) => {
     await initUsersTable();
     await initWatchlistTables();
     await initScheduleTable();
+    await initSavedSearchTables();
+    await initCollectionTables();
     await migrateScheduleEpisodesWatched();
     await migrateAnimeWatchlistNotes();
     await migrateAnimeDetailCache();
@@ -913,38 +939,42 @@ app.get("/api/watchlist/enriched", requireAuth, async (c) => {
 
 app.post("/api/watchlist/import/preview", requireAuth, async (c) => {
   const body = await c.req.json();
-  const source = body.source === "anilist" ? "anilist" : "mal";
+  const user = c.get("user")!;
+  const source =
+    body.source === "anilist" ? "anilist" : body.source === "shelf" ? "shelf" : "mal";
   const payload = typeof body.payload === "string" ? body.payload : "";
   if (!payload.trim()) {
     return c.json({ error: "Import payload is required" }, 400);
   }
-  if (source === "anilist") {
-    const parsed = safeParseAniListJson(payload);
-    return parsed.ok ? c.json(parsed.preview) : c.json({ error: parsed.error }, 400);
+  const preview = parseImportPayload(source, payload);
+  if (!preview) {
+    return c.json({ error: "Invalid import payload" }, 400);
   }
-  return c.json(parseMalAnimeXml(payload));
+  const watchlist = await getAnimeWatchlist(user.userId);
+  return c.json(withImportConflicts(preview, watchlist?.anime ?? {}));
 });
 
 app.post("/api/watchlist/import/apply", requireAuth, async (c) => {
   const body = await c.req.json();
   const user = c.get("user")!;
-  const source = body.source === "anilist" ? "anilist" : "mal";
+  const source =
+    body.source === "anilist" ? "anilist" : body.source === "shelf" ? "shelf" : "mal";
+  const mode: WatchlistImportMode =
+    body.mode === "replace" ? "replace" : body.mode === "skip" ? "skip" : "merge";
   const payload = typeof body.payload === "string" ? body.payload : "";
   if (!payload.trim()) {
     return c.json({ error: "Import payload is required" }, 400);
   }
-  const preview =
-    source === "anilist"
-      ? (() => {
-          const parsed = safeParseAniListJson(payload);
-          return parsed.ok ? parsed.preview : null;
-        })()
-      : parseMalAnimeXml(payload);
+  const preview = parseImportPayload(source, payload);
   if (!preview) {
-    return c.json({ error: "Invalid AniList JSON payload" }, 400);
+    return c.json({ error: "Invalid import payload" }, 400);
   }
-  const result = await importAnimeWatchlistEntries(preview.entries, user.userId);
-  return c.json({ ...preview, imported: result.imported });
+  const watchlist = await getAnimeWatchlist(user.userId);
+  const existing = watchlist?.anime ?? {};
+  const resolvedPreview = withImportConflicts(preview, existing);
+  const entries = applyImportMode(resolvedPreview, existing, mode);
+  const result = await importAnimeWatchlistEntries(entries, user.userId);
+  return c.json({ ...resolvedPreview, imported: result.imported, mode });
 });
 
 app.get("/api/watchlist/export/anilist", requireAuth, async (c) => {
@@ -953,6 +983,24 @@ app.get("/api/watchlist/export/anilist", requireAuth, async (c) => {
   return c.json({
     source: "anilist",
     entries: watchlist ? buildAniListExport(watchlist.anime) : [],
+  });
+});
+
+app.get("/api/watchlist/export/json", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const watchlist = await getAnimeWatchlist(user.userId);
+  return c.json(watchlist ? buildShelfJsonExport(watchlist.anime) : { version: 1, anime: [] });
+});
+
+app.get("/api/watchlist/export/csv", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const watchlist = await getAnimeWatchlist(user.userId);
+  const csv = watchlist ? buildShelfCsvExport(watchlist.anime) : "mal_id,title,status,type,episodes,note";
+  return new Response(csv, {
+    headers: {
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": 'attachment; filename="shelf-watchlist.csv"',
+    },
   });
 });
 
@@ -1211,6 +1259,122 @@ app.post("/api/discover/dismiss", requireAuth, async (c) => {
 
 registerMangaRoutes(app, { requireAuth, optionalAuth });
 
+// Saved searches + alerts
+app.get("/api/saved-searches", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const searches = await listSavedSearches(user.userId);
+  const unseenCount = await countUnseenAlerts(user.userId);
+  return c.json({ searches, unseenCount });
+});
+
+app.post("/api/saved-searches", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const body = await c.req.json();
+  const name = typeof body.name === "string" ? body.name.trim() : "";
+  const filters = Array.isArray(body.filters) ? body.filters : [];
+  if (!name || filters.length === 0) {
+    return c.json({ error: "Name and filters are required" }, 400);
+  }
+  const search = await createSavedSearch(user.userId, name, filters);
+  return c.json({ search });
+});
+
+app.post("/api/saved-searches/:id/update", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const id = c.req.param("id");
+  const body = await c.req.json();
+  await updateSavedSearch(user.userId, id, {
+    name: typeof body.name === "string" ? body.name : undefined,
+    paused: typeof body.paused === "boolean" ? body.paused : undefined,
+    filters: Array.isArray(body.filters) ? body.filters : undefined,
+  });
+  return c.json({ success: true });
+});
+
+app.post("/api/saved-searches/:id/delete", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  await deleteSavedSearch(user.userId, c.req.param("id"));
+  return c.json({ success: true });
+});
+
+app.get("/api/saved-searches/alerts", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const unseenOnly = c.req.query("unseen") === "1";
+  const alerts = await listSavedSearchAlerts(user.userId, { unseenOnly });
+  return c.json({ alerts });
+});
+
+app.post("/api/saved-searches/alerts/seen", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const body = await c.req.json();
+  const alertIds = Array.isArray(body.alert_ids)
+    ? body.alert_ids.filter((id: unknown) => typeof id === "string")
+    : [];
+  await markSavedSearchAlertsSeen(user.userId, alertIds);
+  return c.json({ success: true });
+});
+
+// Public collections
+app.get("/api/collections/mine", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const collections = await listUserCollections(user.userId);
+  return c.json({ collections });
+});
+
+app.post("/api/collections", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const body = await c.req.json();
+  const title = typeof body.title === "string" ? body.title.trim() : "";
+  if (!title) return c.json({ error: "Title is required" }, 400);
+  const collection = await createCollection(user.userId, {
+    title,
+    description: typeof body.description === "string" ? body.description : "",
+    visibility: body.visibility === "private" ? "private" : "public",
+    items: Array.isArray(body.items) ? body.items : [],
+  });
+  return c.json({ collection });
+});
+
+app.post("/api/collections/:id/update", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const body = await c.req.json();
+  const collection = await updateCollection(user.userId, c.req.param("id"), {
+    title: typeof body.title === "string" ? body.title : undefined,
+    description: typeof body.description === "string" ? body.description : undefined,
+    visibility: body.visibility === "private" || body.visibility === "public" ? body.visibility : undefined,
+    items: Array.isArray(body.items) ? body.items : undefined,
+  });
+  if (!collection) return c.json({ error: "Collection not found" }, 404);
+  return c.json({ collection });
+});
+
+app.post("/api/collections/:id/delete", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  await deleteCollection(user.userId, c.req.param("id"));
+  return c.json({ success: true });
+});
+
+app.get("/api/collections/:slug", async (c) => {
+  const slug = c.req.param("slug");
+  const collection = await getCollectionBySlug(slug, { publicOnly: true });
+  if (!collection) return c.json({ error: "Collection not found" }, 404);
+  const items = await getCollectionItems(collection.id);
+  const enriched = await Promise.all(
+    items.map(async (item) => {
+      const anime = await getAnimeByMalId(Number(item.mal_id));
+      return {
+        ...item,
+        title: anime?.title ?? anime?.title_english ?? item.mal_id,
+        image: anime?.image,
+        score: anime?.score,
+        year: anime?.year,
+        url: anime?.url,
+      };
+    }),
+  );
+  return c.json({ collection, items: enriched });
+});
+
 // ── Export ──────────────────────────────────────────────────────────────
 
 export default {
@@ -1230,6 +1394,7 @@ export default {
       env.TURSO_MANGA_AUTH_TOKEN || env.TURSO_AUTH_TOKEN;
     console.log("Cron: refreshing anime and manga caches from Turso");
     await Promise.all([animeStore.setAnimeList(), mangaStore.setMangaList()]);
-    console.log("Cron: cache refreshed");
+    const alertsCreated = await evaluateSavedSearchesAfterCatalogRefresh();
+    console.log(`Cron: cache refreshed; ${alertsCreated} saved-search alerts created`);
   },
 };

@@ -1,8 +1,12 @@
 import {
   buildAniListExport,
+  buildShelfJsonExport,
   parseAniListJson,
   parseMalAnimeXml,
+  parseShelfJson,
   safeParseAniListJson,
+  withImportConflicts,
+  applyImportMode,
 } from "./watchlistSync";
 
 describe("watchlist sync", () => {
@@ -84,5 +88,18 @@ describe("watchlist sync", () => {
       { mediaIdMal: 2, status: "COMPLETED", notes: "" },
       { mediaIdMal: 3, status: "PLANNING", notes: "" },
     ]);
+  });
+
+  it("parses Shelf JSON backups and detects import conflicts", () => {
+    const preview = parseShelfJson(JSON.stringify({
+      version: 1,
+      anime: [{ mal_id: "1", status: "Watching", title: "Bebop" }],
+    }));
+    const resolved = withImportConflicts(preview, {
+      "1": { id: "1", status: "Done", title: "Bebop" },
+    });
+    expect(resolved.conflicts).toHaveLength(1);
+    expect(applyImportMode(resolved, { "1": { id: "1", status: "Done" } }, "merge")).toHaveLength(0);
+    expect(buildShelfJsonExport({ "1": { id: "1", status: "Watching" } }).anime).toHaveLength(1);
   });
 });

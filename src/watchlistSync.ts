@@ -16,11 +16,23 @@ export interface ExternalWatchlistEntry {
   note?: string;
 }
 
+export type WatchlistImportSource = "mal" | "anilist" | "shelf";
+export type WatchlistImportMode = "merge" | "replace" | "skip";
+
+export interface WatchlistImportConflict {
+  malId: string;
+  title?: string;
+  incomingStatus: ExternalWatchStatus;
+  existingStatus: string;
+}
+
 export interface WatchlistImportPreview {
-  source: "mal" | "anilist";
+  source: WatchlistImportSource;
   entries: ExternalWatchlistEntry[];
   statusCounts: Record<string, number>;
   skipped: number;
+  conflicts: WatchlistImportConflict[];
+  newCount: number;
 }
 
 export type WatchlistImportParseResult =
@@ -83,15 +95,164 @@ function toPositiveNumber(value: unknown) {
 }
 
 function summarize(
-  source: "mal" | "anilist",
+  source: WatchlistImportSource,
   entries: ExternalWatchlistEntry[],
   skipped: number,
+  existing: Record<string, WatchedAnime> = {},
 ): WatchlistImportPreview {
   const statusCounts: Record<string, number> = {};
+  const conflicts: WatchlistImportConflict[] = [];
+  let newCount = 0;
+
   for (const entry of entries) {
     statusCounts[entry.status] = (statusCounts[entry.status] ?? 0) + 1;
+    const current = existing[entry.malId];
+    if (!current) {
+      newCount += 1;
+      continue;
+    }
+    if (current.status.trim().toLowerCase() !== entry.status.trim().toLowerCase()) {
+      conflicts.push({
+        malId: entry.malId,
+        title: entry.title ?? current.title,
+        incomingStatus: entry.status,
+        existingStatus: current.status,
+      });
+    }
   }
-  return { source, entries, statusCounts, skipped };
+
+  return { source, entries, statusCounts, skipped, conflicts, newCount };
+}
+
+export function parseShelfJson(rawJson: string): WatchlistImportPreview {
+  const parsed = JSON.parse(rawJson) as {
+    version?: number;
+    anime?: Array<{
+      mal_id?: string | number;
+      id?: string | number;
+      status?: string;
+      title?: string;
+      type?: string;
+      episodes?: number;
+      note?: string;
+    }>;
+  };
+
+  const entries: ExternalWatchlistEntry[] = [];
+  let skipped = 0;
+
+  for (const row of parsed.anime ?? []) {
+    const malId = (row.mal_id ?? row.id)?.toString();
+    const statusRaw = (row.status ?? "").trim();
+    if (!malId || !statusRaw) {
+      skipped += 1;
+      continue;
+    }
+    entries.push({
+      malId,
+      status: statusRaw as ExternalWatchStatus,
+      title: row.title,
+      type: row.type,
+      episodes: toPositiveNumber(row.episodes),
+      note: row.note,
+    });
+  }
+
+  return summarize("shelf", entries, skipped);
+}
+
+export function safeParseShelfJson(rawJson: string): WatchlistImportParseResult {
+  try {
+    return { ok: true, preview: parseShelfJson(rawJson) };
+  } catch {
+    return { ok: false, error: "Invalid Shelf JSON backup" };
+  }
+}
+
+export function buildShelfJsonExport(watchlist: Record<string, WatchedAnime>) {
+  return {
+    version: 1,
+    exported_at: new Date().toISOString(),
+    anime: Object.values(watchlist).map((entry) => ({
+      mal_id: entry.id,
+      status: entry.status,
+      title: entry.title ?? null,
+      type: entry.type ?? null,
+      episodes: entry.episodes ?? null,
+      note: entry.note ?? null,
+    })),
+  };
+}
+
+export function buildShelfCsvExport(watchlist: Record<string, WatchedAnime>): string {
+  const header = "mal_id,title,status,type,episodes,note";
+  const rows = Object.values(watchlist).map((entry) => {
+    const cells = [
+      entry.id,
+      entry.title ?? "",
+      entry.status,
+      entry.type ?? "",
+      entry.episodes?.toString() ?? "",
+      entry.note ?? "",
+    ].map((cell) => `"${String(cell).replaceAll('"', '""')}"`);
+    return cells.join(",");
+  });
+  return [header, ...rows].join("\n");
+}
+
+export function parseMalCsv(csv: string): WatchlistImportPreview {
+  const lines = csv.trim().split(/\r?\n/);
+  const entries: ExternalWatchlistEntry[] = [];
+  let skipped = 0;
+
+  for (const [index, line] of lines.entries()) {
+    if (index === 0 && line.toLowerCase().includes("mal_id")) continue;
+    if (!line.trim()) continue;
+
+    const cells = line.match(/("([^"]|"")*"|[^,]+)/g)?.map((cell) =>
+      cell.replace(/^"|"$/g, "").replaceAll('""', '"').trim(),
+    ) ?? [];
+
+    const [malId, title, statusRaw, type, episodesRaw, note] = cells;
+    const status = normalizeStatus("mal", statusRaw ?? "");
+    if (!malId || !status) {
+      skipped += 1;
+      continue;
+    }
+
+    entries.push({
+      malId,
+      status,
+      title: title || undefined,
+      type: type || undefined,
+      episodes: toPositiveNumber(episodesRaw),
+      note: note || undefined,
+    });
+  }
+
+  return summarize("mal", entries, skipped);
+}
+
+export function withImportConflicts(
+  preview: WatchlistImportPreview,
+  existing: Record<string, WatchedAnime>,
+): WatchlistImportPreview {
+  return summarize(preview.source, preview.entries, preview.skipped, existing);
+}
+
+export function applyImportMode(
+  preview: WatchlistImportPreview,
+  existing: Record<string, WatchedAnime>,
+  mode: WatchlistImportMode,
+): ExternalWatchlistEntry[] {
+  const conflictIds = new Set(preview.conflicts.map((row) => row.malId));
+  if (mode === "replace") return preview.entries;
+  if (mode === "skip") {
+    return preview.entries.filter((entry) => !existing[entry.malId]);
+  }
+  return preview.entries.filter(
+    (entry) => !existing[entry.malId] || !conflictIds.has(entry.malId),
+  );
 }
 
 export function parseMalAnimeXml(xml: string): WatchlistImportPreview {
@@ -183,4 +344,22 @@ export function buildAniListExport(watchlist: Record<string, WatchedAnime>) {
       ANILIST_EXPORT_STATUS_MAP[entry.status.trim().toLowerCase()] ?? "PLANNING",
     notes: entry.note ?? "",
   }));
+}
+
+export function parseImportPayload(
+  source: WatchlistImportSource,
+  payload: string,
+): WatchlistImportPreview | null {
+  if (source === "anilist") {
+    const parsed = safeParseAniListJson(payload);
+    return parsed.ok ? parsed.preview : null;
+  }
+  if (source === "shelf") {
+    const parsed = safeParseShelfJson(payload);
+    return parsed.ok ? parsed.preview : null;
+  }
+  if (payload.trim().startsWith("<")) {
+    return parseMalAnimeXml(payload);
+  }
+  return parseMalCsv(payload);
 }

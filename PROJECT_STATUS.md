@@ -1,43 +1,158 @@
-# Project Status
+# anime_list — PROJECT STATUS
+Last updated: 2026-06-20
 
-Last updated: 2026-06-20 (perf pass)
+## Why / What
 
-## Current Scope
+**Shelf (MAL Explorer)** is a production anime/manga discovery app with multi-field search, shareable URLs, personal watchlists (Google OAuth), stats, schedule, and a signed-in seasonal discover queue.
 
-Shelf (MAL Explorer) is a production anime/manga discovery app: multi-field search with shareable URLs, personal watchlists (Google OAuth), stats, schedule, and a signed-in seasonal discover queue backed by Turso + Cloudflare Worker `mal-api`.
+**Users:** Anime/manga fans filtering 40k+ catalog titles; signed-in users tracking watchlists and discovering seasonal picks.
 
-## Done
+**Constraints:** Operational stability over feature expansion. Measure engagement on newer surfaces (quiz, collections) before expanding them. README/CI still reference Next.js/OpenNext in places — runtime is Vite SPA; trust this file and `package.json`.
 
-- Anime + manga catalogs (~14.8k anime, ~25k manga) with quality gates and daily/quarterly sync
-- Advanced filter search (`/search`) with URL-encoded state
-- Watchlist with statuses, tags, taste recommendations (`buildTasteRecommendations`)
-- Discover queue (`/discover`) with watchlist-weighted seasonal scoring
-- Privacy-safe `/quiz` prototype that maps structured answers to Shelf archetypes and existing search URLs
-- Deployed on Cloudflare Pages + Worker; Vitest + Playwright test coverage
-- **De-OpenNext migration (2026-06-20):** web app rewritten from Next.js+OpenNext to Vite SPA + TanStack Router; `mal-api` worker unchanged
-- **Client bundle perf (2026-06-20):** removed 17MB `cleaned_anime_data.json` from SPA; `/search` uses live `mal-api` only (no stale client seed). Route splitting + deferred PostHog. Desktop LCP p75 ~570ms (was ~3.9s)
+**IN scope:** Vite SPA frontend, `mal-api` Hono worker, Turso, daily/quarterly catalog sync, in-app alerts.
 
-## Planned Next
+**OUT of scope:** Email digest for saved searches, collection social features, character quiz persistence/OG images until engagement proves lift.
 
-1. Operational stability (Pages 500 regressions, MAL CDN image policy) per fleet memory
-2. Measure `/quiz` completion-to-search clickthrough before adding persistence, OG images, or share analytics (see `/quiz` prototype + brief)
+## Dependencies
 
-## Done (since 2026-05)
+### External
 
-- Discovery queue list-aware (current/prev season + watchlist taste + quick add/dismiss/skip for anime + manga) — see `/discover`, `DiscoveryQueue`, worker `/api/discover/*`.
-- First-screen search polish (new discovery header UI, live counts, real poster grids, skeletons) shipped.
-- Active filter explanation chips with remove actions in anime + manga search (ActiveFilterChip + formatFilterChip).
-- Privacy-safe minimal character archetype quiz prototype at `/quiz` (maps to shareable search URLs; expansion deferred per brief).
-- Multiple stability/auth/discover fixes (sign-in, schedule invalidation, random route, worker cache, etc.).
+- **Google OAuth + JWT:** `jose`; httpOnly `mal_auth_token` cookie (7d).
+- **Turso libSQL:** catalog tables + per-user watchlists, schedule, saved searches, collections.
+- **Jikan API:** daily GH Action sync + quarterly full refresh.
+- **MAL CDN:** poster images (recurring operational risk).
+- **PostHog:** client analytics.
+- **Cloudflare:** Pages (SPA), Workers (`mal-api`), edge caches (search 180s, stats 300s, detail 24h anonymous only).
+- **Worker secrets (names only):** `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `JWT_SECRET`, `GOOGLE_CLIENT_ID`, optional `TURSO_MANGA_*`, `POSTHOG_API_KEY`.
+- **Env:** `.env` from `.env.example` — `GOOGLE_CLIENT_ID`, `JWT_SECRET`, `VITE_API_URL`, `VITE_GOOGLE_CLIENT_ID`, `TURSO_*`, `VITE_SAASMAKER_API_KEY`.
 
-## Deferred / Parked
+### Internal (fleet)
 
-- **Character identity quiz expansion** — The smallest proof now exists at `/quiz`. Do not add social scraping, OAuth imports, stored quiz results, OG image generation, or a separate recommendation API unless completion-to-search clickthrough proves lift. Full brief: [`docs/plans/2026-06-04-character-identity-quiz-brief.md`](docs/plans/2026-06-04-character-identity-quiz-brief.md).
+- **SaaS Maker:** `VITE_SAASMAKER_API_KEY` for feedback widget integration.
 
-May 2026 Symphony PRD/task IDs addressed by the above (source of truth remains SaaS Maker board):
-- 36332e19, a935677b (list-aware discovery queue)
-- 0c5ec1b7 (first-screen discovery fix ship)
-- e775b1b8 (filter result explanation chips)
-- a880f2b4 (quiz brief + minimal proof)
-- 3f9e43c7 (detail + list-mgmt polish — incremental via auth/list fixes)
-- f600afd0 (full fleet audit — addressed via fixes + context doc)
+### Stack & commands
+
+**Stack:** Vite 8 SPA + TanStack Router + Tailwind v4 + TanStack Query + nuqs (frontend); Hono Cloudflare Worker `mal-api`; Turso libSQL; Google OAuth + JWT (`jose`); PostHog; Vitest + Playwright.
+
+| Command | Purpose |
+|---------|---------|
+| `pnpm install` | Install deps |
+| `pnpm dev` | Worker :8787 + Vite :5173 |
+| `pnpm dev:be` / `pnpm dev:worker` | Worker only |
+| `pnpm dev:fe` | Vite only |
+| `pnpm build` | Vite production build → `dist/` |
+| `pnpm preview` | Vite preview |
+| `pnpm deploy` | Clean `main` guard + build + `wrangler pages deploy` |
+| `pnpm deploy:worker` | Deploy `mal-api` worker |
+| `pnpm test` | Vitest (46 tests, 11 files) |
+| `pnpm test:e2e` | Playwright (desktop + mobile) |
+| `pnpm typecheck` / `pnpm lint` | TS + ESLint |
+| `pnpm db:seed` / `db:seed:manga` | Seed Turso from scripts |
+| `pnpm db:update` / `db:update:manga` | Refresh from Jikan |
+| `pnpm db:quarterly-sync` | Quarterly anime re-score |
+
+## Timeline
+
+- **2026-06-20** — De-OpenNext migration: rewritten from Next.js+OpenNext to Vite SPA + TanStack Router; `mal-api` worker unchanged; removed 17MB `cleaned_anime_data.json` from SPA.
+- **2026-06-20** — Shipped PRD batch (2026-06-12): watchlist import/export, saved search alerts (in-app MVP), public collections.
+- **2026-06-12** — PRD batch defined: watchlist import/export, saved search alerts, public collections.
+- **Ongoing** — Daily GH Action Jikan sync (00:00 UTC); quarterly anime/manga full refresh; worker cron `0 3 * * *` cache reload + saved-search alert evaluation.
+
+## Products
+
+- **SPA (Pages):** https://anime-list-9lk.pages.dev — project `anime-list`, branch `main`; PR previews at `pr-{N}.anime-list-9lk.pages.dev`.
+- **API (Worker):** https://mal-api.sarthakagrawal927.workers.dev — Hono worker `mal-api`, cron `0 3 * * *`.
+- **Local dev:** Vite :5173 + Worker :8787.
+
+## Features (shipped)
+
+### Frontend routes (22 paths, TanStack Router `src/router.tsx`)
+
+- `/` HomePage (marketing/FAQ), `/about`, `/privacy`, `/terms`, `/changelog`.
+- `/search` — advanced anime filter search with URL-encoded state (nuqs).
+- `/discover` — signed-in seasonal discovery queue.
+- `/anime/$malId`, `/manga/$malId` — detail pages with relations/recommendations.
+- `/genre/$genre`, `/random` — discovery pickers.
+- `/schedule` — episode pacing schedule.
+- `/watchlist` — anime watchlist + import/export.
+- `/stats`, `/manga`, `/manga/stats`, `/manga/watchlist` — manga surfaces.
+- `/alerts` — saved search alert management.
+- `/collections`, `/c/$slug` — collection editor + public view.
+- `/quiz` — character identity quiz prototype (no persistence).
+
+### Worker API (`src/worker.ts` + `src/worker/mangaRoutes.ts`, 50+ endpoints)
+
+- Auth: `POST /api/auth/google`, `POST /api/auth/logout`.
+- Catalog: `POST /api/search`, `GET /api/stats`, `GET /api/anime/random`, `GET /api/anime/:malId`, `GET /api/fields`, `GET /api/filters`, `GET /api/last-updated`, `GET /api/changelog`.
+- Watchlist: full CRUD, tags, taste recommendations (`buildTasteRecommendations`), enriched view, import preview/apply (MAL XML/CSV, AniList JSON, Shelf JSON), export (JSON/CSV/AniList).
+- Schedule: timeline, add/update/remove/reorder.
+- Discover: `GET /api/discover/queue` (taste-weighted seasonal + manga interleave 1:5), `POST /api/discover/dismiss`.
+- Saved searches: CRUD + alerts list/seen; cron creates alerts after catalog refresh.
+- Collections: CRUD + public `GET /api/collections/:slug`.
+- Manga: parallel search/stats/random/watchlist/detail routes under `/api/manga/*`.
+
+### Architecture
+
+- Vite SPA calls `mal-api` worker; TanStack Query caches responses client-side.
+- Worker loads full anime (~14.8k) + manga (~25k) catalogs into in-memory stores with 1hr stale-while-revalidate.
+- Turso stores catalog tables + per-user watchlists, schedule, saved searches, collections.
+- Google OAuth → JWT in httpOnly `mal_auth_token` cookie (7d).
+- Worker cron `0 3 * * *` reloads caches + evaluates saved-search alerts after catalog refresh.
+- GitHub Actions: daily Jikan sync (00:00 UTC), quarterly anime/manga full refresh, auto Pages deploy on `main`.
+- Edge caches: search 180s, stats 300s, detail 24h (anonymous only).
+- CORS allowlist for Pages, worker, localhost, PR previews.
+- Deploy branch guard on `pnpm deploy` (clean `main` only).
+
+### Catalog & search
+
+- ~14.8k anime + ~25k manga with quality gates (score, scored_by, members, favorites, year).
+- Advanced multi-field filters with active filter explanation chips (`ActiveFilterChip`).
+- Smart ranking: log-scale popularity + MAL score balance.
+- Sub-ms worker responses via in-memory cache; removed 17MB `cleaned_anime_data.json` from SPA (2026-06-20).
+- Daily GH Action Jikan sync + quarterly full manga refresh + worker cron 03:00 UTC cache reload.
+
+### Personal & discovery
+
+- Watchlist statuses: Watching, Completed, Deferred, Avoiding, BRR + custom tags.
+- Discover queue: current/previous season scoring, taste-weighted genres/themes, quick add/dismiss/skip, signed-in gating.
+- Quiz: 4 questions → 4 Shelf archetypes → prefilled search URLs; privacy-safe, no persistence.
+- First-screen polish: live counts, skeletons, poster grids.
+
+### Shipped PRD batch (2026-06-12, implemented 2026-06-20)
+
+- Watchlist import/export with conflict preview; merge/replace/skip modes on `/watchlist`.
+- Saved search alerts (in-app MVP): `saved_searches` + `saved_search_alerts` tables; save from `/search`, manage `/alerts`, nav badge.
+- Public collections: create/publish at `/collections`; public pages at `/c/:slug`.
+
+### Database tables (Turso, inline migrations at worker startup)
+
+- `users`, `user_tags`, `anime_watchlist`, `manga_watchlist`, `anime_dismissals`, `anime_schedule`, `anime_data`, `manga_data`, `anime_relations_cache`, `anime_recommendations_cache`, `saved_searches`, `saved_search_alerts`, `collections`, `collection_items`.
+
+### Tests & ops
+
+- Vitest: 46 tests (import/export, filters, recommendations, schedule, detail cache).
+- Playwright: anime detail load, mobile touch targets, no horizontal scroll.
+- PostHog analytics.
+
+## Todo / Planned / Deferred / Blocked
+
+### Planned
+
+1. Operational stability — Pages 500 regressions, MAL CDN image policy.
+2. Fix CI/deploy drift: replace stale `pages:build` / `NEXT_PUBLIC_*` references in `.github/workflows/ci.yml` and `deploy.yml` with Vite `pnpm build`.
+3. Measure `/quiz` completion-to-search clickthrough before persistence, OG images, or share analytics.
+4. Measure collection share clickthrough before discovery ranking or social features.
+5. Add e2e for discover, watchlist import, collections, alerts (`e2e/`).
+
+### Deferred
+
+- **Character identity quiz expansion** — `/quiz` proof shipped; expansion (share URLs, persistence, OG) deferred pending engagement data.
+- **Saved search email digest** — in-app MVP shipped; email deferred until engagement proves lift.
+- **Collection social features** — comments, likes, follower feeds deferred.
+
+### Blocked
+
+- README/AGENTS/deploy CI still say Next.js/OpenNext/`pages:build`; runtime is Vite SPA — CI may fail or skip.
+- `ci.yml` and `deploy.yml` reference missing `pnpm pages:build` — deploy pipeline drift.
+- MAL CDN image policy and intermittent Pages 500s are recurring operational risks.
+- No e2e for discover, watchlist import, collections, alerts, auth flows, manga routes.

@@ -21,6 +21,8 @@ const animeLinks = [
   { href: "/quiz", label: "Quiz" },
   { href: "/stats", label: "Stats" },
   { href: "/watchlist", label: "Watchlist" },
+  { href: "/alerts", label: "Alerts" },
+  { href: "/collections", label: "Collections" },
   { href: "/schedule", label: "Schedule" },
   { href: "/changelog", label: "Changelog" },
 ];

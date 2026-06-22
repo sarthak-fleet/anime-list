@@ -11,6 +11,10 @@ import type {
   WatchlistTag,
   WatchlistImportPreview,
   AniListExportResponse,
+  SavedSearch,
+  SavedSearchAlert,
+  CollectionSummary,
+  CollectionItem,
   ScheduleTimelineResponse,
   MangaWatchlistData,
   EnrichedMangaWatchlistResponse,
@@ -176,7 +180,7 @@ export function getTasteRecommendations(): Promise<TasteRecommendationsResponse>
 }
 
 export function previewWatchlistImport(
-  source: "mal" | "anilist",
+  source: "mal" | "anilist" | "shelf",
   payload: string,
 ): Promise<WatchlistImportPreview> {
   return fetchJson(`${BASE}/watchlist/import/preview`, {
@@ -187,18 +191,124 @@ export function previewWatchlistImport(
 }
 
 export function applyWatchlistImport(
-  source: "mal" | "anilist",
+  source: "mal" | "anilist" | "shelf",
   payload: string,
+  mode: "merge" | "replace" | "skip" = "merge",
 ): Promise<WatchlistImportPreview> {
   return fetchJson(`${BASE}/watchlist/import/apply`, {
     method: "POST",
     headers: jsonHeaders,
-    body: JSON.stringify({ source, payload }),
+    body: JSON.stringify({ source, payload, mode }),
   });
 }
 
 export function exportAniListWatchlist(): Promise<AniListExportResponse> {
   return fetchJson(`${BASE}/watchlist/export/anilist`);
+}
+
+export function exportShelfWatchlistJson(): Promise<{ version: number; anime: unknown[] }> {
+  return fetchJson(`${BASE}/watchlist/export/json`);
+}
+
+export async function downloadShelfWatchlistCsv(): Promise<void> {
+  const response = await fetch(`${BASE}/watchlist/export/csv`, withCreds());
+  if (!response.ok) throw new Error("Export failed");
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = "shelf-watchlist.csv";
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+export function listSavedSearches(): Promise<{ searches: SavedSearch[]; unseenCount: number }> {
+  return fetchJson(`${BASE}/saved-searches`);
+}
+
+export function createSavedSearch(name: string, filters: SearchFilter[]): Promise<{ search: SavedSearch }> {
+  return fetchJson(`${BASE}/saved-searches`, {
+    method: "POST",
+    headers: jsonHeaders,
+    body: JSON.stringify({ name, filters }),
+  });
+}
+
+export function updateSavedSearch(
+  id: string,
+  payload: { name?: string; paused?: boolean; filters?: SearchFilter[] },
+): Promise<{ success: boolean }> {
+  return fetchJson(`${BASE}/saved-searches/${id}/update`, {
+    method: "POST",
+    headers: jsonHeaders,
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteSavedSearch(id: string): Promise<{ success: boolean }> {
+  return fetchJson(`${BASE}/saved-searches/${id}/delete`, {
+    method: "POST",
+    headers: jsonHeaders,
+    body: JSON.stringify({}),
+  });
+}
+
+export function listSavedSearchAlerts(unseenOnly = false): Promise<{ alerts: SavedSearchAlert[] }> {
+  const query = unseenOnly ? "?unseen=1" : "";
+  return fetchJson(`${BASE}/saved-searches/alerts${query}`);
+}
+
+export function markSavedSearchAlertsSeen(alertIds: string[]): Promise<{ success: boolean }> {
+  return fetchJson(`${BASE}/saved-searches/alerts/seen`, {
+    method: "POST",
+    headers: jsonHeaders,
+    body: JSON.stringify({ alert_ids: alertIds }),
+  });
+}
+
+export function listMyCollections(): Promise<{ collections: CollectionSummary[] }> {
+  return fetchJson(`${BASE}/collections/mine`);
+}
+
+export function createCollection(payload: {
+  title: string;
+  description?: string;
+  visibility?: "public" | "private";
+  items?: Array<{ mal_id: string; media_type?: string; note?: string }>;
+}): Promise<{ collection: CollectionSummary }> {
+  return fetchJson(`${BASE}/collections`, {
+    method: "POST",
+    headers: jsonHeaders,
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateCollection(
+  id: string,
+  payload: {
+    title?: string;
+    description?: string;
+    visibility?: "public" | "private";
+    items?: Array<{ mal_id: string; media_type?: string; note?: string }>;
+  },
+): Promise<{ collection: CollectionSummary }> {
+  return fetchJson(`${BASE}/collections/${id}/update`, {
+    method: "POST",
+    headers: jsonHeaders,
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteCollection(id: string): Promise<{ success: boolean }> {
+  return fetchJson(`${BASE}/collections/${id}/delete`, {
+    method: "POST",
+    headers: jsonHeaders,
+    body: JSON.stringify({}),
+  });
+}
+
+export function getPublicCollection(slug: string): Promise<{ collection: CollectionSummary; items: CollectionItem[] }> {
+  return fetchJson(`${BASE}/collections/${slug}`);
 }
 
 export function updateAnimeNote(

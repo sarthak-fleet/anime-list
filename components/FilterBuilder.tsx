@@ -11,7 +11,7 @@ import {
 } from "nuqs";
 import { useQuery } from "@tanstack/react-query";
 import type { SearchFilter, SearchResponse } from "@/lib/types";
-import { getFields, getFilterActions, getWatchlistTags, searchAnime } from "@/lib/api";
+import { getFields, getFilterActions, getWatchlistTags, searchAnime, createSavedSearch } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { trackCoreAction } from "@/lib/analytics";
 import {
@@ -191,6 +191,9 @@ export default function FilterBuilder({
   const [showAdvanced, setShowAdvanced] = useState(
     () => activeAdvancedFilters.length > 0,
   );
+  const [saveSearchOpen, setSaveSearchOpen] = useState(false);
+  const [saveSearchName, setSaveSearchName] = useState("");
+  const [saveSearchMessage, setSaveSearchMessage] = useState<string | null>(null);
 
   const resetPage = () => setCurrentPage(1);
 
@@ -304,6 +307,19 @@ export default function FilterBuilder({
     );
     resetPage();
   };
+
+  async function handleSaveSearch() {
+    const { filters: activeFilters } = buildSearchOpts();
+    if (!user || activeFilters.length === 0 || !saveSearchName.trim()) return;
+    try {
+      await createSavedSearch(saveSearchName.trim(), activeFilters);
+      setSaveSearchMessage("Saved. New matches will appear in Alerts after the next catalog refresh.");
+      setSaveSearchName("");
+      setSaveSearchOpen(false);
+    } catch {
+      setSaveSearchMessage("Could not save search. Sign in and try again.");
+    }
+  }
 
   const updateFilter = (index: number, filter: SearchFilter) => {
     setFilters((prev) =>
@@ -645,10 +661,51 @@ export default function FilterBuilder({
       </DiscoverPanel>
 
       {data && (
-        <p className="text-sm text-muted-foreground">
-          {totalFiltered.toLocaleString()} titles
-          {isFetching && " · updating…"}
-        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-sm text-muted-foreground">
+            {totalFiltered.toLocaleString()} titles
+            {isFetching && " · updating…"}
+          </p>
+          {user && buildSearchOpts().filters.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setSaveSearchOpen((open) => !open)}
+              className="text-sm font-medium text-primary hover:text-primary/80"
+            >
+              Save search
+            </button>
+          )}
+        </div>
+      )}
+
+      {saveSearchOpen && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/20 px-3 py-2">
+          <input
+            value={saveSearchName}
+            onChange={(event) => setSaveSearchName(event.target.value)}
+            placeholder="Name this search"
+            className="h-8 min-w-[180px] flex-1 rounded-md border border-input bg-background px-2 text-sm"
+          />
+          <button
+            type="button"
+            onClick={handleSaveSearch}
+            disabled={!saveSearchName.trim()}
+            className="h-8 rounded-md bg-primary px-3 text-xs text-primary-foreground disabled:opacity-50"
+          >
+            Save
+          </button>
+          <button
+            type="button"
+            onClick={() => setSaveSearchOpen(false)}
+            className="h-8 rounded-md px-3 text-xs text-muted-foreground hover:text-foreground"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {saveSearchMessage && (
+        <p className="text-xs text-muted-foreground">{saveSearchMessage}</p>
       )}
 
       {error && (
