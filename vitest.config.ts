@@ -15,7 +15,15 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts', 'lib/**/*.ts'],
-      exclude: ['**/*.test.ts', '**/*.d.ts', '**/index.ts', 'node_modules', 'dist', '.next', '.wrangler'],
+      exclude: [
+        '**/*.test.ts',
+        '**/*.d.ts',
+        '**/index.ts',
+        'node_modules',
+        'dist',
+        '.next',
+        '.wrangler',
+      ],
       thresholds: { lines: 80, functions: 80, branches: 70, statements: 80 },
     },
   },
