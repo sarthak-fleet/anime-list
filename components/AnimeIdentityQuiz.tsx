@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { Button } from '@/components/ui/button';
 import type { SearchFilter } from '@/lib/types';
+import { filtersParser } from '@/lib/filterMetadata';
 
 type ArchetypeId = 'steady-strategist' | 'chaotic-optimist' | 'quiet-observer' | 'world-builder';
 
@@ -237,5 +238,7 @@ function buildSearchHref(archetype: Archetype) {
     ...archetype.filters,
     { field: 'members', action: 'GREATER_THAN_OR_EQUALS', value: 100000 },
   ];
-  return `/search?af=${encodeURIComponent(JSON.stringify(filters))}&sort=score`;
+  // Use the shared serializer (object-wrapped {f:[...]}) so the link round-trips
+  // through the nuqs TanStack Router adapter; a bare af=[...] array gets corrupted.
+  return `/search?af=${encodeURIComponent(filtersParser.serialize(filters))}&sort=score`;
 }
