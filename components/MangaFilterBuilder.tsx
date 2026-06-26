@@ -1,13 +1,17 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useQueryState, parseAsString, parseAsArrayOf, parseAsInteger, parseAsJson } from 'nuqs';
+import { useQueryState, parseAsString, parseAsArrayOf, parseAsInteger } from 'nuqs';
 import { useQuery } from '@tanstack/react-query';
 import type { SearchFilter, SearchResponse } from '@/lib/types';
 import { getMangaFields, getMangaFilterActions, getWatchlistTags, searchManga } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { trackCoreAction } from '@/lib/analytics';
-import { DEFAULT_FILTER_ACTIONS, DEFAULT_MANGA_FIELD_OPTIONS } from '@/lib/filterMetadata';
+import {
+  DEFAULT_FILTER_ACTIONS,
+  DEFAULT_MANGA_FIELD_OPTIONS,
+  filtersParser,
+} from '@/lib/filterMetadata';
 import FilterRow from './FilterRow';
 import MangaResultsGrid, { MangaResultsGridSkeleton } from './MangaResultsGrid';
 import { MANGA_SORT_OPTIONS, POPULARITY_PRESETS, QUICK_GENRES } from './discover/constants';
@@ -31,11 +35,6 @@ const DEFAULT_FILTER: SearchFilter = {
 };
 const DEFAULT_PAGE_SIZE = 40;
 const DEFAULT_MIN_MEMBERS = 50_000;
-
-const filtersParser = parseAsJson<SearchFilter[]>((v) => {
-  if (!Array.isArray(v)) return null;
-  return v as SearchFilter[];
-});
 
 function normalizeFilter(filter: SearchFilter): SearchFilter {
   if (filter.field !== 'type') return filter;

@@ -7,7 +7,6 @@ import {
   parseAsStringLiteral,
   parseAsArrayOf,
   parseAsInteger,
-  parseAsJson,
 } from 'nuqs';
 import { useQuery } from '@tanstack/react-query';
 import type { SearchFilter, SearchResponse } from '@/lib/types';
@@ -21,7 +20,7 @@ import {
 import { useAuth } from '@/lib/auth';
 import { trackCoreAction } from '@/lib/analytics';
 import { DEFAULT_ANIME_MIN_MEMBERS, DEFAULT_ANIME_PAGE_SIZE } from '@/lib/animeSearchDefaults';
-import { DEFAULT_FIELD_OPTIONS, DEFAULT_FILTER_ACTIONS } from '@/lib/filterMetadata';
+import { DEFAULT_FIELD_OPTIONS, DEFAULT_FILTER_ACTIONS, filtersParser } from '@/lib/filterMetadata';
 import FilterRow from './FilterRow';
 import ResultsGrid, { ResultsGridSkeleton } from './ResultsGrid';
 import { ANIME_SORT_OPTIONS, POPULARITY_PRESETS, QUICK_GENRES } from './discover/constants';
@@ -78,11 +77,6 @@ const AIRING_OPTIONS = [
   { value: 'yes' as const, label: 'Airing' },
   { value: 'no' as const, label: 'Finished' },
 ];
-
-const filtersParser = parseAsJson<SearchFilter[]>((v) => {
-  if (!Array.isArray(v)) return null;
-  return v as SearchFilter[];
-});
 
 function normalizeFilter(filter: SearchFilter): SearchFilter {
   if (!SINGLE_VALUE_OPTION_FIELDS.has(filter.field)) return filter;
