@@ -1,5 +1,5 @@
 # anime_list — PROJECT STATUS
-Last updated: 2026-06-28
+Last updated: 2026-07-02
 
 ## Why / What
 
@@ -53,6 +53,7 @@ Last updated: 2026-06-28
 
 ## Timeline
 
+- **2026-07-02** — Added `app.onError()` global error handler to `mal-api` worker (catches unhandled Hono errors → 500 JSON + console.error logging).
 - **2026-06-20** — De-OpenNext migration: rewritten from Next.js+OpenNext to Vite SPA + TanStack Router; `mal-api` worker unchanged; removed 17MB `cleaned_anime_data.json` from SPA.
 - **2026-06-20** — Shipped PRD batch (2026-06-12): watchlist import/export, saved search alerts (in-app MVP), public collections.
 - **2026-06-12** — PRD batch defined: watchlist import/export, saved search alerts, public collections.
